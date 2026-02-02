@@ -841,37 +841,46 @@
     }
     
     async function loadData() {
-      console.log('Loading data... supabase client:', !!supabase);
+      console.log('loadData() called, supabase client:', !!supabase);
+      console.log('Current data.holdings.length:', data.holdings?.length);
+      
+      let loadedFromSupabase = false;
       
       if (supabase) {
         try {
-          // Load from Supabase - fetch each separately for better error handling
           console.log('Fetching from Supabase...');
           
-          const holdingsRes = await supabase.from('holdings').select('*');
-          const pricesRes = await supabase.from('prices').select('*');
-          const settingsRes = await supabase.from('settings').select('*');
-          const snapshotsRes = await supabase.from('snapshots').select('*').order('date', { ascending: true });
-          const thesesRes = await supabase.from('theses').select('*');
-          const watchlistRes = await supabase.from('watchlist').select('*');
-          const transactionsRes = await supabase.from('transactions').select('*').order('date', { ascending: false });
-          const notesRes = await supabase.from('notes').select('*').order('created_at', { ascending: false });
-          const macroRes = await supabase.from('macro_indicators').select('*');
+          // Fetch all data
+          const [holdingsRes, pricesRes, settingsRes, snapshotsRes, thesesRes, watchlistRes, transactionsRes, notesRes, macroRes] = await Promise.all([
+            supabase.from('holdings').select('*'),
+            supabase.from('prices').select('*'),
+            supabase.from('settings').select('*'),
+            supabase.from('snapshots').select('*').order('date', { ascending: true }),
+            supabase.from('theses').select('*'),
+            supabase.from('watchlist').select('*'),
+            supabase.from('transactions').select('*').order('date', { ascending: false }),
+            supabase.from('notes').select('*').order('created_at', { ascending: false }),
+            supabase.from('macro_indicators').select('*'),
+          ]);
           
           console.log('Supabase responses:', { 
             holdings: holdingsRes.data?.length, 
             prices: pricesRes.data?.length,
-            error: holdingsRes.error || pricesRes.error 
+            holdingsError: holdingsRes.error,
+            pricesError: pricesRes.error
           });
           
-          // Build price map
-          const priceMap = {};
-          if (pricesRes.data) {
-            pricesRes.data.forEach(p => { priceMap[p.symbol] = parseFloat(p.price); });
-          }
-          
-          // Holdings
+          // Only proceed if we got holdings
           if (holdingsRes.data && holdingsRes.data.length > 0) {
+            loadedFromSupabase = true;
+            
+            // Build price map
+            const priceMap = {};
+            if (pricesRes.data) {
+              pricesRes.data.forEach(p => { priceMap[p.symbol] = parseFloat(p.price); });
+            }
+            
+            // Update data object
             data.holdings = holdingsRes.data.map(h => ({
               symbol: h.symbol,
               name: h.name,
@@ -879,62 +888,69 @@
               price: priceMap[h.symbol] || 0,
               type: h.type
             }));
+            
+            if (settingsRes.data?.length) {
+              const cashSetting = settingsRes.data.find(s => s.key === 'cash');
+              if (cashSetting) data.cash = parseFloat(cashSetting.value);
+            }
+            
+            if (snapshotsRes.data?.length) {
+              data.weeklyValues = snapshotsRes.data.map(s => ({ date: s.date, value: parseFloat(s.total_value) }));
+            }
+            
+            if (thesesRes.data?.length) {
+              data.theses = thesesRes.data.map(t => ({ symbol: t.symbol, thesis: t.thesis, conviction: t.conviction, target: t.target_price }));
+            }
+            
+            if (watchlistRes.data?.length) {
+              data.watchlist = watchlistRes.data.map(w => ({ symbol: w.symbol, notes: w.notes, target: w.target_entry }));
+            }
+            
+            if (transactionsRes.data?.length) {
+              data.transactions = transactionsRes.data.map(t => ({ symbol: t.symbol, action: t.action, shares: parseFloat(t.shares), price: parseFloat(t.price), date: t.date, notes: t.notes }));
+            }
+            
+            if (notesRes.data?.length) {
+              data.notes = notesRes.data.map(n => ({ date: n.created_at.split('T')[0], author: n.author, text: n.content, tags: n.tags || [] }));
+            }
+            
+            if (macroRes.data?.length) {
+              data.macroIndicators = macroRes.data.map(m => ({ id: m.id, name: m.name, value: m.value, trend: m.trend }));
+            }
+            
+            data.lastUpdated = new Date().toISOString();
+            console.log('✅ Data loaded from Supabase:', data.holdings.length, 'holdings');
+          } else {
+            console.log('⚠️ Supabase returned empty holdings, using defaults');
           }
-          
-          // Settings (cash)
-          if (settingsRes.data && settingsRes.data.length > 0) {
-            const cashSetting = settingsRes.data.find(s => s.key === 'cash');
-            if (cashSetting) data.cash = parseFloat(cashSetting.value);
-          }
-          
-          // Snapshots
-          if (snapshotsRes.data && snapshotsRes.data.length > 0) {
-            data.weeklyValues = snapshotsRes.data.map(s => ({ date: s.date, value: parseFloat(s.total_value) }));
-          }
-          
-          // Theses
-          if (thesesRes.data && thesesRes.data.length > 0) {
-            data.theses = thesesRes.data.map(t => ({ symbol: t.symbol, thesis: t.thesis, conviction: t.conviction, target: t.target_price }));
-          }
-          
-          // Watchlist
-          if (watchlistRes.data && watchlistRes.data.length > 0) {
-            data.watchlist = watchlistRes.data.map(w => ({ symbol: w.symbol, notes: w.notes, target: w.target_entry }));
-          }
-          
-          // Transactions
-          if (transactionsRes.data && transactionsRes.data.length > 0) {
-            data.transactions = transactionsRes.data.map(t => ({ symbol: t.symbol, action: t.action, shares: parseFloat(t.shares), price: parseFloat(t.price), date: t.date, notes: t.notes }));
-          }
-          
-          // Notes
-          if (notesRes.data && notesRes.data.length > 0) {
-            data.notes = notesRes.data.map(n => ({ date: n.created_at.split('T')[0], author: n.author, text: n.content, tags: n.tags || [] }));
-          }
-          
-          // Macro indicators
-          if (macroRes.data && macroRes.data.length > 0) {
-            data.macroIndicators = macroRes.data.map(m => ({ id: m.id, name: m.name, value: m.value, trend: m.trend }));
-          }
-          
-          data.lastUpdated = new Date().toISOString();
-          console.log('Data loaded from Supabase successfully', { holdings: data.holdings.length });
-          
         } catch (e) {
-          console.error('Supabase load error:', e);
-          console.log('Falling back to default data');
+          console.error('❌ Supabase error:', e);
         }
       } else {
-        console.log('No Supabase client, using default data');
+        console.log('⚠️ No Supabase client available');
       }
       
-      // Always try to render
+      // Ensure we have valid data - reset to defaults if something is wrong
+      if (!data.holdings || data.holdings.length === 0) {
+        console.log('🔄 Resetting to DEFAULT_DATA');
+        data = JSON.parse(JSON.stringify(DEFAULT_DATA));
+      }
+      
+      console.log('📊 Final data state:', { 
+        holdings: data.holdings?.length,
+        cash: data.cash,
+        source: loadedFromSupabase ? 'Supabase' : 'Defaults'
+      });
+      
+      // Render
       try {
         initChart();
         render();
-        console.log('Render complete');
+        console.log('✅ Render complete');
       } catch (e) {
-        console.error('Render error:', e);
+        console.error('❌ Render error:', e);
+        // Last resort - show something
+        alert('Error loading dashboard. Check console for details.');
       }
     }
     
