@@ -827,41 +827,56 @@
     
     // ==================== SUPABASE ====================
     function initSupabase() {
-      if (supabaseUrl && supabaseKey) {
+      console.log('Initializing Supabase...', { url: supabaseUrl, hasKey: !!supabaseKey });
+      if (supabaseUrl && supabaseKey && window.supabase) {
         try {
           supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
           document.getElementById('configNotice').style.display = 'none';
-          console.log('Supabase connected');
+          console.log('Supabase client created successfully');
         } catch (e) {
           console.error('Supabase init failed:', e);
+          supabase = null;
           document.getElementById('configNotice').style.display = 'block';
         }
       } else {
+        console.log('Supabase not available:', { hasUrl: !!supabaseUrl, hasKey: !!supabaseKey, hasLib: !!window.supabase });
         document.getElementById('configNotice').style.display = 'block';
       }
     }
     
     async function loadData() {
+      console.log('Loading data... supabase client:', !!supabase);
+      
       if (supabase) {
         try {
-          // Load from Supabase
-          const [holdings, settings, snapshots, theses, watchlist, transactions, notes, macro] = await Promise.all([
-            supabase.from('holdings').select('*'),
-            supabase.from('settings').select('*'),
-            supabase.from('snapshots').select('*').order('date', { ascending: true }),
-            supabase.from('theses').select('*'),
-            supabase.from('watchlist').select('*'),
-            supabase.from('transactions').select('*').order('date', { ascending: false }),
-            supabase.from('notes').select('*').order('created_at', { ascending: false }),
-            supabase.from('macro_indicators').select('*'),
-          ]);
+          // Load from Supabase - fetch each separately for better error handling
+          console.log('Fetching from Supabase...');
           
-          if (holdings.data?.length) {
-            // Join with prices
-            const prices = await supabase.from('prices').select('*');
-            const priceMap = Object.fromEntries((prices.data || []).map(p => [p.symbol, p.price]));
-            
-            data.holdings = holdings.data.map(h => ({
+          const holdingsRes = await supabase.from('holdings').select('*');
+          const pricesRes = await supabase.from('prices').select('*');
+          const settingsRes = await supabase.from('settings').select('*');
+          const snapshotsRes = await supabase.from('snapshots').select('*').order('date', { ascending: true });
+          const thesesRes = await supabase.from('theses').select('*');
+          const watchlistRes = await supabase.from('watchlist').select('*');
+          const transactionsRes = await supabase.from('transactions').select('*').order('date', { ascending: false });
+          const notesRes = await supabase.from('notes').select('*').order('created_at', { ascending: false });
+          const macroRes = await supabase.from('macro_indicators').select('*');
+          
+          console.log('Supabase responses:', { 
+            holdings: holdingsRes.data?.length, 
+            prices: pricesRes.data?.length,
+            error: holdingsRes.error || pricesRes.error 
+          });
+          
+          // Build price map
+          const priceMap = {};
+          if (pricesRes.data) {
+            pricesRes.data.forEach(p => { priceMap[p.symbol] = parseFloat(p.price); });
+          }
+          
+          // Holdings
+          if (holdingsRes.data && holdingsRes.data.length > 0) {
+            data.holdings = holdingsRes.data.map(h => ({
               symbol: h.symbol,
               name: h.name,
               shares: parseFloat(h.shares),
@@ -870,55 +885,61 @@
             }));
           }
           
-          if (settings.data?.length) {
-            const cashSetting = settings.data.find(s => s.key === 'cash');
+          // Settings (cash)
+          if (settingsRes.data && settingsRes.data.length > 0) {
+            const cashSetting = settingsRes.data.find(s => s.key === 'cash');
             if (cashSetting) data.cash = parseFloat(cashSetting.value);
           }
           
-          if (snapshots.data?.length) {
-            data.weeklyValues = snapshots.data.map(s => ({ date: s.date, value: parseFloat(s.total_value) }));
+          // Snapshots
+          if (snapshotsRes.data && snapshotsRes.data.length > 0) {
+            data.weeklyValues = snapshotsRes.data.map(s => ({ date: s.date, value: parseFloat(s.total_value) }));
           }
           
-          if (theses.data?.length) {
-            data.theses = theses.data.map(t => ({ symbol: t.symbol, thesis: t.thesis, conviction: t.conviction, target: t.target_price }));
+          // Theses
+          if (thesesRes.data && thesesRes.data.length > 0) {
+            data.theses = thesesRes.data.map(t => ({ symbol: t.symbol, thesis: t.thesis, conviction: t.conviction, target: t.target_price }));
           }
           
-          if (watchlist.data?.length) {
-            data.watchlist = watchlist.data.map(w => ({ symbol: w.symbol, notes: w.notes, target: w.target_entry }));
+          // Watchlist
+          if (watchlistRes.data && watchlistRes.data.length > 0) {
+            data.watchlist = watchlistRes.data.map(w => ({ symbol: w.symbol, notes: w.notes, target: w.target_entry }));
           }
           
-          if (transactions.data?.length) {
-            data.transactions = transactions.data.map(t => ({ symbol: t.symbol, action: t.action, shares: parseFloat(t.shares), price: parseFloat(t.price), date: t.date, notes: t.notes }));
+          // Transactions
+          if (transactionsRes.data && transactionsRes.data.length > 0) {
+            data.transactions = transactionsRes.data.map(t => ({ symbol: t.symbol, action: t.action, shares: parseFloat(t.shares), price: parseFloat(t.price), date: t.date, notes: t.notes }));
           }
           
-          if (notes.data?.length) {
-            data.notes = notes.data.map(n => ({ date: n.created_at.split('T')[0], author: n.author, text: n.content, tags: n.tags || [] }));
+          // Notes
+          if (notesRes.data && notesRes.data.length > 0) {
+            data.notes = notesRes.data.map(n => ({ date: n.created_at.split('T')[0], author: n.author, text: n.content, tags: n.tags || [] }));
           }
           
-          if (macro.data?.length) {
-            data.macroIndicators = macro.data.map(m => ({ id: m.id, name: m.name, value: m.value, trend: m.trend }));
+          // Macro indicators
+          if (macroRes.data && macroRes.data.length > 0) {
+            data.macroIndicators = macroRes.data.map(m => ({ id: m.id, name: m.name, value: m.value, trend: m.trend }));
           }
           
           data.lastUpdated = new Date().toISOString();
-          console.log('Data loaded from Supabase');
+          console.log('Data loaded from Supabase successfully', { holdings: data.holdings.length });
+          
         } catch (e) {
           console.error('Supabase load error:', e);
+          console.log('Falling back to default data');
         }
       } else {
-        // Try localStorage fallback
-        try {
-          const stored = localStorage.getItem('portfolio-dashboard-v3');
-          if (stored) {
-            const parsed = JSON.parse(stored);
-            if (parsed.holdings?.length) data = parsed;
-          }
-        } catch (e) {
-          console.log('Using default data');
-        }
+        console.log('No Supabase client, using default data');
       }
       
-      initChart();
-      render();
+      // Always try to render
+      try {
+        initChart();
+        render();
+        console.log('Render complete');
+      } catch (e) {
+        console.error('Render error:', e);
+      }
     }
     
     function saveLocal() {
