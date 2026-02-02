@@ -728,7 +728,7 @@
     // Supabase config (pre-configured, can override via localStorage)
     let supabaseUrl = localStorage.getItem('supabase_url') || 'https://wfifrubydsyyrspneqst.supabase.co';
     let supabaseKey = localStorage.getItem('supabase_key') || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmaWZydWJ5ZHN5eXJzcG5lcXN0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwNTUxNTQsImV4cCI6MjA4NTYzMTE1NH0.SbniMd6HizrdeZIRT77iguGDoJeo2MThEEXcXDm13UY';
-    let supabase = null;
+    let supabaseClient = null;
     
     // ==================== DEFAULT DATA ====================
     const DEFAULT_DATA = {
@@ -826,12 +826,12 @@
       console.log('Initializing Supabase...', { url: supabaseUrl, hasKey: !!supabaseKey });
       if (supabaseUrl && supabaseKey && window.supabase) {
         try {
-          supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+          supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
           document.getElementById('configNotice').style.display = 'none';
           console.log('Supabase client created successfully');
         } catch (e) {
           console.error('Supabase init failed:', e);
-          supabase = null;
+          supabaseClient = null;
           document.getElementById('configNotice').style.display = 'block';
         }
       } else {
@@ -841,26 +841,26 @@
     }
     
     async function loadData() {
-      console.log('loadData() called, supabase client:', !!supabase);
+      console.log('loadData() called, supabase client:', !!supabaseClient);
       console.log('Current data.holdings.length:', data.holdings?.length);
       
       let loadedFromSupabase = false;
       
-      if (supabase) {
+      if (supabaseClient) {
         try {
           console.log('Fetching from Supabase...');
           
           // Fetch all data
           const [holdingsRes, pricesRes, settingsRes, snapshotsRes, thesesRes, watchlistRes, transactionsRes, notesRes, macroRes] = await Promise.all([
-            supabase.from('holdings').select('*'),
-            supabase.from('prices').select('*'),
-            supabase.from('settings').select('*'),
-            supabase.from('snapshots').select('*').order('date', { ascending: true }),
-            supabase.from('theses').select('*'),
-            supabase.from('watchlist').select('*'),
-            supabase.from('transactions').select('*').order('date', { ascending: false }),
-            supabase.from('notes').select('*').order('created_at', { ascending: false }),
-            supabase.from('macro_indicators').select('*'),
+            supabaseClient.from('holdings').select('*'),
+            supabaseClient.from('prices').select('*'),
+            supabaseClient.from('settings').select('*'),
+            supabaseClient.from('snapshots').select('*').order('date', { ascending: true }),
+            supabaseClient.from('theses').select('*'),
+            supabaseClient.from('watchlist').select('*'),
+            supabaseClient.from('transactions').select('*').order('date', { ascending: false }),
+            supabaseClient.from('notes').select('*').order('created_at', { ascending: false }),
+            supabaseClient.from('macro_indicators').select('*'),
           ]);
           
           console.log('Supabase responses:', { 
@@ -1183,9 +1183,9 @@
         data.holdings.push({ symbol, name, shares, price, type });
       }
       
-      if (supabase) {
-        await supabase.from('holdings').upsert({ symbol, name, shares, type }, { onConflict: 'symbol' });
-        await supabase.from('prices').upsert({ symbol, price }, { onConflict: 'symbol' });
+      if (supabaseClient) {
+        await supabaseClient.from('holdings').upsert({ symbol, name, shares, type }, { onConflict: 'symbol' });
+        await supabaseClient.from('prices').upsert({ symbol, price }, { onConflict: 'symbol' });
       }
       
       saveLocal();
@@ -1197,7 +1197,7 @@
     async function deleteHolding(symbol) {
       if (!confirm(`Delete ${symbol}?`)) return;
       data.holdings = data.holdings.filter(h => h.symbol !== symbol);
-      if (supabase) await supabase.from('holdings').delete().eq('symbol', symbol);
+      if (supabaseClient) await supabaseClient.from('holdings').delete().eq('symbol', symbol);
       saveLocal();
       render();
     }
@@ -1212,8 +1212,8 @@
       const note = { date: new Date().toISOString().split('T')[0], author, text, tags };
       data.notes.unshift(note);
       
-      if (supabase) {
-        await supabase.from('notes').insert({ author, content: text, tags });
+      if (supabaseClient) {
+        await supabaseClient.from('notes').insert({ author, content: text, tags });
       }
       
       saveLocal();
@@ -1234,8 +1234,8 @@
       const tx = { symbol, action, shares, price, date };
       data.transactions.unshift(tx);
       
-      if (supabase) {
-        await supabase.from('transactions').insert({ symbol, action, shares, price, date });
+      if (supabaseClient) {
+        await supabaseClient.from('transactions').insert({ symbol, action, shares, price, date });
       }
       
       saveLocal();
@@ -1253,8 +1253,8 @@
       
       data.watchlist.push({ symbol, notes, target });
       
-      if (supabase) {
-        await supabase.from('watchlist').insert({ symbol, notes, target_entry: target });
+      if (supabaseClient) {
+        await supabaseClient.from('watchlist').insert({ symbol, notes, target_entry: target });
       }
       
       saveLocal();
@@ -1273,8 +1273,8 @@
       
       data.theses.push({ symbol, thesis, conviction, target });
       
-      if (supabase) {
-        await supabase.from('theses').insert({ symbol, thesis, conviction, target_price: target });
+      if (supabaseClient) {
+        await supabaseClient.from('theses').insert({ symbol, thesis, conviction, target_price: target });
       }
       
       saveLocal();
