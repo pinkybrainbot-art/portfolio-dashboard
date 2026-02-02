@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portfolio Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0d1117;
+      color: #c9d1d9;
+      min-height: 100vh;
+    }
+    
+    /* Navigation */
+    .nav {
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .nav h1 { color: #58a6ff; font-size: 1.3rem; }
+    .nav-tabs { display: flex; gap: 5px; }
+    .nav-tab {
+      padding: 8px 16px;
+      background: transparent;
+      border: none;
+      color: #8b949e;
+      cursor: pointer;
+      border-radius: 6px;
+      font-size: 0.9rem;
+    }
+    .nav-tab:hover { color: #c9d1d9; background: #21262d; }
+    .nav-tab.active { color: #58a6ff; background: #21262d; }
+    
+    /* Main Container */
+    .container { padding: 20px; max-width: 1400px; margin: 0 auto; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    
+    /* Cards */
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #30363d;
+    }
+    .card-title { font-weight: 600; font-size: 1rem; }
+    
+    /* Grid Layouts */
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
+    
+    /* Stats */
+    .stat-card {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+    }
+    .stat-value { font-size: 1.8rem; font-weight: 600; color: #58a6ff; }
+    .stat-label { font-size: 0.8rem; color: #8b949e; margin-top: 5px; }
+    .stat-change { font-size: 0.85rem; margin-top: 8px; }
+    .stat-change.positive { color: #238636; }
+    .stat-change.negative { color: #f85149; }
+    
+    /* Holdings Table */
+    .table-wrapper { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #30363d; }
+    th { color: #8b949e; font-weight: 500; font-size: 0.85rem; }
+    td { font-size: 0.9rem; }
+    tr:hover { background: #21262d; }
+    .ticker { font-weight: 600; color: #58a6ff; }
+    .positive { color: #238636; }
+    .negative { color: #f85149; }
+    
+    /* Allocation Bar */
+    .allocation-bar {
+      height: 8px;
+      background: #30363d;
+      border-radius: 4px;
+      overflow: hidden;
+      display: flex;
+    }
+    .allocation-segment { height: 100%; }
+    
+    /* Transaction Log */
+    .transaction {
+      display: flex;
+      gap: 15px;
+      padding: 15px;
+      background: #0d1117;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      border-left: 3px solid #30363d;
+    }
+    .transaction.buy { border-left-color: #238636; }
+    .transaction.sell { border-left-color: #f85149; }
+    .transaction-date { color: #8b949e; font-size: 0.8rem; min-width: 80px; }
+    .transaction-details { flex: 1; }
+    .transaction-action { font-weight: 600; }
+    .transaction-reason { color: #8b949e; font-size: 0.85rem; margin-top: 5px; }
+    
+    /* Thesis Cards */
+    .thesis-card {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 15px;
+    }
+    .thesis-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .thesis-ticker { font-weight: 600; font-size: 1.1rem; color: #58a6ff; }
+    .thesis-conviction {
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    .conviction-high { background: #238636; color: white; }
+    .conviction-medium { background: #f0883e; color: white; }
+    .conviction-low { background: #8b949e; color: white; }
+    .thesis-text { font-size: 0.85rem; color: #c9d1d9; line-height: 1.5; margin-bottom: 10px; }
+    .thesis-catalysts { font-size: 0.8rem; color: #8b949e; }
+    .thesis-catalysts strong { color: #c9d1d9; }
+    
+    /* Watchlist */
+    .watchlist-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 15px;
+      background: #0d1117;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      border: 1px solid #30363d;
+    }
+    .watchlist-item:hover { border-color: #58a6ff; }
+    .watchlist-ticker { font-weight: 600; color: #58a6ff; }
+    .watchlist-note { font-size: 0.8rem; color: #8b949e; margin-top: 3px; }
+    .watchlist-price { text-align: right; }
+    
+    /* Resources */
+    .resource-item {
+      display: flex;
+      gap: 15px;
+      padding: 15px;
+      background: #0d1117;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      border: 1px solid #30363d;
+    }
+    .resource-item:hover { border-color: #58a6ff; }
+    .resource-icon { font-size: 1.5rem; }
+    .resource-info { flex: 1; }
+    .resource-title { font-weight: 500; color: #58a6ff; }
+    .resource-desc { font-size: 0.8rem; color: #8b949e; margin-top: 3px; }
+    .resource-link { font-size: 0.75rem; color: #58a6ff; text-decoration: none; }
+    
+    /* Notes */
+    .note {
+      padding: 15px;
+      background: #0d1117;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      border-left: 3px solid #a371f7;
+    }
+    .note-date { font-size: 0.75rem; color: #8b949e; margin-bottom: 8px; }
+    .note-text { font-size: 0.9rem; line-height: 1.5; }
+    .note-tags { margin-top: 10px; display: flex; gap: 6px; }
+    .note-tag {
+      font-size: 0.7rem;
+      padding: 3px 8px;
+      background: #21262d;
+      border-radius: 12px;
+      color: #8b949e;
+    }
+    
+    /* Buttons */
+    .btn {
+      padding: 8px 16px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+    .btn-primary { background: #238636; color: white; }
+    .btn-primary:hover { background: #2ea043; }
+    .btn-secondary { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; }
+    .btn-secondary:hover { background: #30363d; }
+    .btn-sm { padding: 5px 10px; font-size: 0.75rem; }
+    
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.7);
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 25px;
+      width: 90%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .modal h2 { margin-bottom: 20px; font-size: 1.1rem; }
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; margin-bottom: 6px; font-size: 0.85rem; color: #8b949e; }
+    .form-group input, .form-group textarea, .form-group select {
+      width: 100%;
+      padding: 10px;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      color: #c9d1d9;
+      font-size: 0.9rem;
+    }
+    .form-group textarea { min-height: 80px; resize: vertical; }
+    .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+      outline: none;
+      border-color: #58a6ff;
+    }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+    
+    /* Summary Bar */
+    .summary-bar {
+      display: flex;
+      gap: 20px;
+      padding: 15px 20px;
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+      font-size: 0.85rem;
+      flex-wrap: wrap;
+    }
+    .summary-item { display: flex; gap: 8px; align-items: center; }
+    .summary-label { color: #8b949e; }
+    .summary-value { font-weight: 600; }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <h1>📊 Portfolio Dashboard</h1>
+    <div class="nav-tabs">
+      <button class="nav-tab active" data-tab="overview">Overview</button>
+      <button class="nav-tab" data-tab="holdings">Holdings</button>
+      <button class="nav-tab" data-tab="theses">Theses</button>
+      <button class="nav-tab" data-tab="transactions">Log</button>
+      <button class="nav-tab" data-tab="watchlist">Watchlist</button>
+      <button class="nav-tab" data-tab="resources">Resources</button>
+      <button class="nav-tab" data-tab="notes">Notes</button>
+    </div>
+  </nav>
+  
+  <div class="summary-bar">
+    <div class="summary-item">
+      <span class="summary-label">Total Value:</span>
+      <span class="summary-value" id="totalValue">$0</span>
+    </div>
+    <div class="summary-item">
+      <span class="summary-label">Cash:</span>
+      <span class="summary-value" id="cashValue">$0</span>
+    </div>
+    <div class="summary-item">
+      <span class="summary-label">Positions:</span>
+      <span class="summary-value" id="positionCount">0</span>
+    </div>
+    <div class="summary-item">
+      <span class="summary-label">Last Updated:</span>
+      <span class="summary-value" id="lastUpdated">-</span>
+    </div>
+  </div>
+  
+  <div class="container">
+    <!-- Overview Tab -->
+    <div class="tab-content active" id="overview">
+      <div class="grid-4" style="margin-bottom: 20px;">
+        <div class="stat-card">
+          <div class="stat-value" id="statStocks">$0</div>
+          <div class="stat-label">Stocks</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statCrypto">$0</div>
+          <div class="stat-label">Crypto</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statCash">$0</div>
+          <div class="stat-label">Cash</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statAllocation">0%</div>
+          <div class="stat-label">Invested</div>
+        </div>
+      </div>
+      
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">📈 Top Holdings</span>
+          </div>
+          <div id="topHoldings"></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">📝 Recent Activity</span>
+          </div>
+          <div id="recentActivity"></div>
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">🧠 Current Thoughts</span>
+          <button class="btn btn-sm btn-secondary" onclick="openNoteModal()">+ Add Note</button>
+        </div>
+        <div id="latestNotes"></div>
+      </div>
+    </div>
+    
+    <!-- Holdings Tab -->
+    <div class="tab-content" id="holdings">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">💼 All Holdings</span>
+          <button class="btn btn-sm btn-primary" onclick="openHoldingModal()">+ Add Holding</button>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Symbol</th>
+                <th>Name</th>
+                <th>Shares</th>
+                <th>Price</th>
+                <th>Value</th>
+                <th>Allocation</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="holdingsTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Theses Tab -->
+    <div class="tab-content" id="theses">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">💡 Investment Theses</span>
+          <button class="btn btn-sm btn-primary" onclick="openThesisModal()">+ Add Thesis</button>
+        </div>
+        <div class="grid-2" id="thesesGrid"></div>
+      </div>
+    </div>
+    
+    <!-- Transactions Tab -->
+    <div class="tab-content" id="transactions">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">📋 Transaction Log</span>
+          <button class="btn btn-sm btn-primary" onclick="openTransactionModal()">+ Log Transaction</button>
+        </div>
+        <div id="transactionLog"></div>
+      </div>
+    </div>
+    
+    <!-- Watchlist Tab -->
+    <div class="tab-content" id="watchlist">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">👀 Watchlist</span>
+          <button class="btn btn-sm btn-primary" onclick="openWatchlistModal()">+ Add to Watchlist</button>
+        </div>
+        <div id="watchlistItems"></div>
+      </div>
+    </div>
+    
+    <!-- Resources Tab -->
+    <div class="tab-content" id="resources">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">📚 Resources & Sources</span>
+          <button class="btn btn-sm btn-primary" onclick="openResourceModal()">+ Add Resource</button>
+        </div>
+        <div class="grid-2" id="resourcesList"></div>
+      </div>
+    </div>
+    
+    <!-- Notes Tab -->
+    <div class="tab-content" id="notes">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">🧠 Market Notes & Thoughts</span>
+          <button class="btn btn-sm btn-primary" onclick="openNoteModal()">+ Add Note</button>
+        </div>
+        <div id="allNotes"></div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modals -->
+  <div class="modal-overlay" id="noteModal">
+    <div class="modal">
+      <h2>Add Note</h2>
+      <form id="noteForm">
+        <div class="form-group">
+          <label>Note</label>
+          <textarea id="noteText" required placeholder="What are you thinking about the market?"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Tags (comma separated)</label>
+          <input type="text" id="noteTags" placeholder="macro, crypto, earnings">
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('noteModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <div class="modal-overlay" id="transactionModal">
+    <div class="modal">
+      <h2>Log Transaction</h2>
+      <form id="transactionForm">
+        <div class="form-group">
+          <label>Type</label>
+          <select id="txType">
+            <option value="buy">Buy</option>
+            <option value="sell">Sell</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Symbol</label>
+          <input type="text" id="txSymbol" required placeholder="TSLA">
+        </div>
+        <div class="form-group">
+          <label>Shares/Amount</label>
+          <input type="number" id="txShares" step="any" required>
+        </div>
+        <div class="form-group">
+          <label>Price</label>
+          <input type="number" id="txPrice" step="any" required>
+        </div>
+        <div class="form-group">
+          <label>Reason / Notes</label>
+          <textarea id="txReason" placeholder="Why did you make this trade?"></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('transactionModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <div class="modal-overlay" id="watchlistModal">
+    <div class="modal">
+      <h2>Add to Watchlist</h2>
+      <form id="watchlistForm">
+        <div class="form-group">
+          <label>Symbol</label>
+          <input type="text" id="wlSymbol" required placeholder="CRWV">
+        </div>
+        <div class="form-group">
+          <label>Notes / Why watching</label>
+          <textarea id="wlNotes" placeholder="AI infrastructure pure play, watching for entry..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>Target Entry Price (optional)</label>
+          <input type="number" id="wlTarget" step="any" placeholder="80.00">
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('watchlistModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <div class="modal-overlay" id="thesisModal">
+    <div class="modal">
+      <h2>Add Investment Thesis</h2>
+      <form id="thesisForm">
+        <div class="form-group">
+          <label>Symbol</label>
+          <input type="text" id="thSymbol" required placeholder="TSLA">
+        </div>
+        <div class="form-group">
+          <label>Conviction</label>
+          <select id="thConviction">
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Bull Case</label>
+          <textarea id="thThesis" required placeholder="Why do you believe in this investment?"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Key Catalysts</label>
+          <textarea id="thCatalysts" placeholder="What events could drive the price?"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Risks</label>
+          <textarea id="thRisks" placeholder="What could go wrong?"></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('thesisModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <div class="modal-overlay" id="resourceModal">
+    <div class="modal">
+      <h2>Add Resource</h2>
+      <form id="resourceForm">
+        <div class="form-group">
+          <label>Title</label>
+          <input type="text" id="resTitle" required placeholder="Macro Voices Podcast">
+        </div>
+        <div class="form-group">
+          <label>Type</label>
+          <select id="resType">
+            <option value="newsletter">Newsletter</option>
+            <option value="podcast">Podcast</option>
+            <option value="analyst">Analyst</option>
+            <option value="twitter">Twitter/X</option>
+            <option value="website">Website</option>
+            <option value="book">Book</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>URL (optional)</label>
+          <input type="url" id="resUrl" placeholder="https://...">
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <textarea id="resDesc" placeholder="Why is this useful?"></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('resourceModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // Data structure
+    let data = JSON.parse(localStorage.getItem('portfolio-dashboard') || 'null') || {
+      holdings: [
+        { symbol: 'TSLA', name: 'Tesla', shares: 185.31, price: 430.41, type: 'stock' },
+        { symbol: 'CARR', name: 'Carrier Global', shares: 193.24, price: 59.58, type: 'stock' },
+        { symbol: 'ANET', name: 'Arista Networks', shares: 77.07, price: 141.74, type: 'stock' },
+        { symbol: 'NVDA', name: 'NVIDIA', shares: 38.57, price: 188.52, type: 'stock' },
+        { symbol: 'FTNT', name: 'Fortinet', shares: 84.44, price: 81.26, type: 'stock' },
+        { symbol: 'MRVL', name: 'Marvell Technology', shares: 83.81, price: 78.92, type: 'stock' },
+        { symbol: 'SNOW', name: 'Snowflake', shares: 48.14, price: 192.70, type: 'stock' },
+        { symbol: 'HIMS', name: 'Hims & Hers Health', shares: 545.40, price: 27.09, type: 'stock' },
+        { symbol: 'MSTR', name: 'MicroStrategy', shares: 153.45, price: 149.71, type: 'stock' },
+        { symbol: 'FIGR', name: 'Figure Technology', shares: 121, price: 64.49, type: 'stock' },
+        { symbol: 'BTC', name: 'Bitcoin', shares: 1, price: 76352, type: 'crypto' },
+        { symbol: 'SOL', name: 'Solana', shares: 121, price: 100.30, type: 'crypto' },
+      ],
+      cash: 45000,
+      transactions: [
+        { date: '2026-02-02', type: 'sell', symbol: 'LMT', shares: 20.66, price: 634.22, reason: 'Taking profits after 31% YTD run' },
+        { date: '2026-02-02', type: 'sell', symbol: 'IONQ', shares: 107.74, price: 39.98, reason: 'Reducing speculative positions, want high growth stocks' },
+        { date: '2026-02-02', type: 'sell', symbol: 'SERV', shares: 619.92, price: 10.43, reason: 'Reducing speculative positions' },
+        { date: '2026-02-02', type: 'sell', symbol: 'SUI', shares: 18986.6, price: 1.10, reason: 'Lost confidence in alts short-term, crypto bear market' },
+      ],
+      theses: [
+        { symbol: 'TSLA', conviction: 'high', thesis: 'Robotaxi and humanoid robots (Optimus) are not priced in. FSD improving rapidly. Energy business undervalued.', catalysts: 'Robotaxi launch, Optimus production, FSD v13', risks: 'Elon distraction, competition, macro' },
+        { symbol: 'FIGR', conviction: 'medium', thesis: 'Forward-facing fintech that could be a leader in tokenization. RWA tokenization is a massive TAM.', catalysts: 'Tokenization adoption, regulatory clarity', risks: 'Regulatory risk, competition' },
+      ],
+      watchlist: [
+        { symbol: 'CRWV', notes: 'AI infrastructure pure play, down 50% from highs. High target $251.', target: 80 },
+        { symbol: 'MU', notes: 'HBM for AI, forward P/E only 13. Wait for pullback.', target: 350 },
+        { symbol: 'HOOD', notes: 'Crypto leverage play, but bear market concern.', target: 80 },
+        { symbol: 'RKLB', notes: 'Space optionality, Neutron catalyst. Wait for entry.', target: 60 },
+      ],
+      resources: [
+        { title: 'Yahoo Finance', type: 'website', url: 'https://finance.yahoo.com', desc: 'Stock quotes, news, and analysis' },
+        { title: 'TradingView', type: 'website', url: 'https://tradingview.com', desc: 'Charts and technical analysis' },
+      ],
+      notes: [
+        { date: '2026-02-02', text: 'Trimmed speculative positions (IONQ, SERV, SUI) and took profits on LMT. Building cash for better entries. Looking for high-growth stocks with unpriced catalysts.', tags: ['strategy', 'rebalancing'] },
+        { date: '2026-02-02', text: 'Crypto in bear market - alts getting crushed while BTC dominance climbs. Reduced exposure.', tags: ['crypto', 'macro'] },
+      ],
+      lastUpdated: new Date().toISOString()
+    };
+    
+    function save() {
+      data.lastUpdated = new Date().toISOString();
+      localStorage.setItem('portfolio-dashboard', JSON.stringify(data));
+    }
+    
+    function formatCurrency(n) {
+      return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    }
+    
+    function formatDate(dateStr) {
+      return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+    
+    function calculateTotals() {
+      const stocksValue = data.holdings.filter(h => h.type === 'stock').reduce((sum, h) => sum + h.shares * h.price, 0);
+      const cryptoValue = data.holdings.filter(h => h.type === 'crypto').reduce((sum, h) => sum + h.shares * h.price, 0);
+      const totalInvested = stocksValue + cryptoValue;
+      const totalValue = totalInvested + data.cash;
+      return { stocksValue, cryptoValue, totalInvested, totalValue };
+    }
+    
+    function render() {
+      const { stocksValue, cryptoValue, totalInvested, totalValue } = calculateTotals();
+      
+      // Summary bar
+      document.getElementById('totalValue').textContent = formatCurrency(totalValue);
+      document.getElementById('cashValue').textContent = formatCurrency(data.cash);
+      document.getElementById('positionCount').textContent = data.holdings.length;
+      document.getElementById('lastUpdated').textContent = formatDate(data.lastUpdated);
+      
+      // Overview stats
+      document.getElementById('statStocks').textContent = formatCurrency(stocksValue);
+      document.getElementById('statCrypto').textContent = formatCurrency(cryptoValue);
+      document.getElementById('statCash').textContent = formatCurrency(data.cash);
+      document.getElementById('statAllocation').textContent = Math.round(totalInvested / totalValue * 100) + '%';
+      
+      // Top holdings
+      const sorted = [...data.holdings].sort((a, b) => (b.shares * b.price) - (a.shares * a.price)).slice(0, 5);
+      document.getElementById('topHoldings').innerHTML = sorted.map(h => `
+        <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #30363d;">
+          <span class="ticker">${h.symbol}</span>
+          <span>${formatCurrency(h.shares * h.price)}</span>
+        </div>
+      `).join('');
+      
+      // Recent activity
+      document.getElementById('recentActivity').innerHTML = data.transactions.slice(0, 4).map(t => `
+        <div class="transaction ${t.type}">
+          <div class="transaction-date">${formatDate(t.date)}</div>
+          <div class="transaction-details">
+            <div class="transaction-action">${t.type.toUpperCase()} ${t.shares} ${t.symbol} @ $${t.price}</div>
+            ${t.reason ? `<div class="transaction-reason">${t.reason}</div>` : ''}
+          </div>
+        </div>
+      `).join('') || '<p style="color: #8b949e;">No transactions yet</p>';
+      
+      // Latest notes
+      document.getElementById('latestNotes').innerHTML = data.notes.slice(0, 2).map(n => `
+        <div class="note">
+          <div class="note-date">${formatDate(n.date)}</div>
+          <div class="note-text">${n.text}</div>
+          ${n.tags?.length ? `<div class="note-tags">${n.tags.map(t => `<span class="note-tag">${t}</span>`).join('')}</div>` : ''}
+        </div>
+      `).join('') || '<p style="color: #8b949e;">No notes yet</p>';
+      
+      // Holdings table
+      document.getElementById('holdingsTable').innerHTML = data.holdings.map(h => `
+        <tr>
+          <td class="ticker">${h.symbol}</td>
+          <td>${h.name}</td>
+          <td>${h.shares}</td>
+          <td>$${h.price.toLocaleString()}</td>
+          <td>${formatCurrency(h.shares * h.price)}</td>
+          <td>${Math.round(h.shares * h.price / totalValue * 100)}%</td>
+          <td><button class="btn btn-sm btn-secondary" onclick="removeHolding('${h.symbol}')">Remove</button></td>
+        </tr>
+      `).join('');
+      
+      // Theses
+      document.getElementById('thesesGrid').innerHTML = data.theses.map(t => `
+        <div class="thesis-card">
+          <div class="thesis-header">
+            <span class="thesis-ticker">${t.symbol}</span>
+            <span class="thesis-conviction conviction-${t.conviction}">${t.conviction.toUpperCase()}</span>
+          </div>
+          <div class="thesis-text">${t.thesis}</div>
+          ${t.catalysts ? `<div class="thesis-catalysts"><strong>Catalysts:</strong> ${t.catalysts}</div>` : ''}
+          ${t.risks ? `<div class="thesis-catalysts" style="margin-top: 5px;"><strong>Risks:</strong> ${t.risks}</div>` : ''}
+        </div>
+      `).join('') || '<p style="color: #8b949e;">No theses yet</p>';
+      
+      // Transaction log
+      document.getElementById('transactionLog').innerHTML = data.transactions.map(t => `
+        <div class="transaction ${t.type}">
+          <div class="transaction-date">${formatDate(t.date)}</div>
+          <div class="transaction-details">
+            <div class="transaction-action">${t.type.toUpperCase()} ${t.shares} ${t.symbol} @ $${t.price}</div>
+            ${t.reason ? `<div class="transaction-reason">${t.reason}</div>` : ''}
+          </div>
+        </div>
+      `).join('') || '<p style="color: #8b949e;">No transactions yet</p>';
+      
+      // Watchlist
+      document.getElementById('watchlistItems').innerHTML = data.watchlist.map(w => `
+        <div class="watchlist-item">
+          <div>
+            <div class="watchlist-ticker">${w.symbol}</div>
+            <div class="watchlist-note">${w.notes || ''}</div>
+          </div>
+          <div class="watchlist-price">
+            ${w.target ? `<div style="font-size: 0.8rem; color: #8b949e;">Target: $${w.target}</div>` : ''}
+            <button class="btn btn-sm btn-secondary" onclick="removeWatchlist('${w.symbol}')">Remove</button>
+          </div>
+        </div>
+      `).join('') || '<p style="color: #8b949e;">No items in watchlist</p>';
+      
+      // Resources
+      const icons = { newsletter: '📰', podcast: '🎙️', analyst: '👤', twitter: '🐦', website: '🌐', book: '📖', other: '📌' };
+      document.getElementById('resourcesList').innerHTML = data.resources.map(r => `
+        <div class="resource-item">
+          <div class="resource-icon">${icons[r.type] || '📌'}</div>
+          <div class="resource-info">
+            <div class="resource-title">${r.title}</div>
+            <div class="resource-desc">${r.desc || ''}</div>
+            ${r.url ? `<a href="${r.url}" target="_blank" class="resource-link">${r.url}</a>` : ''}
+          </div>
+        </div>
+      `).join('') || '<p style="color: #8b949e;">No resources yet</p>';
+      
+      // All notes
+      document.getElementById('allNotes').innerHTML = data.notes.map(n => `
+        <div class="note">
+          <div class="note-date">${formatDate(n.date)}</div>
+          <div class="note-text">${n.text}</div>
+          ${n.tags?.length ? `<div class="note-tags">${n.tags.map(t => `<span class="note-tag">${t}</span>`).join('')}</div>` : ''}
+        </div>
+      `).join('') || '<p style="color: #8b949e;">No notes yet</p>';
+    }
+    
+    // Tab switching
+    document.querySelectorAll('.nav-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.tab).classList.add('active');
+      });
+    });
+    
+    // Modal functions
+    function openNoteModal() { document.getElementById('noteModal').classList.add('active'); }
+    function openTransactionModal() { document.getElementById('transactionModal').classList.add('active'); }
+    function openWatchlistModal() { document.getElementById('watchlistModal').classList.add('active'); }
+    function openThesisModal() { document.getElementById('thesisModal').classList.add('active'); }
+    function openResourceModal() { document.getElementById('resourceModal').classList.add('active'); }
+    function openHoldingModal() { alert('Use Log Transaction to add holdings'); }
+    
+    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+    
+    // Form handlers
+    document.getElementById('noteForm').addEventListener('submit', e => {
+      e.preventDefault();
+      data.notes.unshift({
+        date: new Date().toISOString().split('T')[0],
+        text: document.getElementById('noteText').value,
+        tags: document.getElementById('noteTags').value.split(',').map(t => t.trim()).filter(t => t)
+      });
+      save(); render(); closeModal('noteModal');
+      document.getElementById('noteForm').reset();
+    });
+    
+    document.getElementById('transactionForm').addEventListener('submit', e => {
+      e.preventDefault();
+      data.transactions.unshift({
+        date: new Date().toISOString().split('T')[0],
+        type: document.getElementById('txType').value,
+        symbol: document.getElementById('txSymbol').value.toUpperCase(),
+        shares: parseFloat(document.getElementById('txShares').value),
+        price: parseFloat(document.getElementById('txPrice').value),
+        reason: document.getElementById('txReason').value
+      });
+      save(); render(); closeModal('transactionModal');
+      document.getElementById('transactionForm').reset();
+    });
+    
+    document.getElementById('watchlistForm').addEventListener('submit', e => {
+      e.preventDefault();
+      data.watchlist.push({
+        symbol: document.getElementById('wlSymbol').value.toUpperCase(),
+        notes: document.getElementById('wlNotes').value,
+        target: parseFloat(document.getElementById('wlTarget').value) || null
+      });
+      save(); render(); closeModal('watchlistModal');
+      document.getElementById('watchlistForm').reset();
+    });
+    
+    document.getElementById('thesisForm').addEventListener('submit', e => {
+      e.preventDefault();
+      data.theses.push({
+        symbol: document.getElementById('thSymbol').value.toUpperCase(),
+        conviction: document.getElementById('thConviction').value,
+        thesis: document.getElementById('thThesis').value,
+        catalysts: document.getElementById('thCatalysts').value,
+        risks: document.getElementById('thRisks').value
+      });
+      save(); render(); closeModal('thesisModal');
+      document.getElementById('thesisForm').reset();
+    });
+    
+    document.getElementById('resourceForm').addEventListener('submit', e => {
+      e.preventDefault();
+      data.resources.push({
+        title: document.getElementById('resTitle').value,
+        type: document.getElementById('resType').value,
+        url: document.getElementById('resUrl').value,
+        desc: document.getElementById('resDesc').value
+      });
+      save(); render(); closeModal('resourceModal');
+      document.getElementById('resourceForm').reset();
+    });
+    
+    function removeHolding(symbol) {
+      if (confirm(`Remove ${symbol} from holdings?`)) {
+        data.holdings = data.holdings.filter(h => h.symbol !== symbol);
+        save(); render();
+      }
+    }
+    
+    function removeWatchlist(symbol) {
+      data.watchlist = data.watchlist.filter(w => w.symbol !== symbol);
+      save(); render();
+    }
+    
+    // Close modals on overlay click
+    document.querySelectorAll('.modal-overlay').forEach(m => {
+      m.addEventListener('click', e => { if (e.target === m) m.classList.remove('active'); });
+    });
+    
+    // Keyboard shortcuts
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+    });
+    
+    render();
+  </script>
+</body>
+</html>
