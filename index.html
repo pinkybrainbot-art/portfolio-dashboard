@@ -13,6 +13,53 @@
       min-height: 100vh;
     }
     
+    /* Login Screen */
+    .login-screen {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .login-box {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 40px;
+      width: 100%;
+      max-width: 360px;
+      text-align: center;
+    }
+    .login-box h1 { color: #58a6ff; margin-bottom: 10px; font-size: 1.5rem; }
+    .login-box p { color: #8b949e; margin-bottom: 25px; font-size: 0.9rem; }
+    .pin-input {
+      width: 100%;
+      padding: 15px;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      color: #c9d1d9;
+      font-size: 1.5rem;
+      text-align: center;
+      letter-spacing: 8px;
+      margin-bottom: 15px;
+    }
+    .pin-input:focus { outline: none; border-color: #58a6ff; }
+    .pin-input::placeholder { letter-spacing: normal; font-size: 1rem; }
+    .login-error { color: #f85149; font-size: 0.85rem; margin-bottom: 15px; display: none; }
+    .login-btn {
+      width: 100%;
+      padding: 12px;
+      background: #238636;
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    .login-btn:hover { background: #2ea043; }
+    .app-content { display: none; }
+    
     /* Navigation */
     .nav {
       background: #161b22;
@@ -268,6 +315,19 @@
   </style>
 </head>
 <body>
+  <!-- Login Screen -->
+  <div class="login-screen" id="loginScreen">
+    <div class="login-box">
+      <h1>🔐 Portfolio Dashboard</h1>
+      <p>Enter your PIN to access</p>
+      <input type="password" class="pin-input" id="pinInput" placeholder="••••" maxlength="6" autofocus>
+      <div class="login-error" id="loginError">Incorrect PIN</div>
+      <button class="login-btn" onclick="checkPin()">Unlock</button>
+    </div>
+  </div>
+  
+  <!-- App Content (hidden until authenticated) -->
+  <div class="app-content" id="appContent">
   <nav class="nav">
     <h1>📊 Portfolio Dashboard</h1>
     <div class="nav-tabs">
@@ -579,8 +639,40 @@
       </form>
     </div>
   </div>
+  </div><!-- End app-content -->
 
   <script>
+    // PIN Authentication
+    const CORRECT_PIN = '1984'; // Change this PIN
+    const SESSION_KEY = 'portfolio-auth';
+    
+    function checkPin() {
+      const pin = document.getElementById('pinInput').value;
+      if (pin === CORRECT_PIN) {
+        sessionStorage.setItem(SESSION_KEY, 'true');
+        showApp();
+      } else {
+        document.getElementById('loginError').style.display = 'block';
+        document.getElementById('pinInput').value = '';
+        document.getElementById('pinInput').focus();
+      }
+    }
+    
+    function showApp() {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('appContent').style.display = 'block';
+    }
+    
+    // Check if already authenticated this session
+    if (sessionStorage.getItem(SESSION_KEY) === 'true') {
+      showApp();
+    }
+    
+    // Allow Enter key to submit PIN
+    document.getElementById('pinInput').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') checkPin();
+    });
+    
     // Data structure
     let data = JSON.parse(localStorage.getItem('portfolio-dashboard') || 'null') || {
       holdings: [
