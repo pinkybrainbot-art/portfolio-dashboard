@@ -817,10 +817,6 @@
       loadData();
     }
     
-    if (sessionStorage.getItem(SESSION_KEY) === 'true') {
-      showApp();
-    }
-    
     document.getElementById('pinInput').addEventListener('keypress', function(e) {
       if (e.key === 'Enter') checkPin();
     });
@@ -1334,6 +1330,15 @@
     
     // Set default date for transactions
     document.getElementById('txDate').value = new Date().toISOString().split('T')[0];
+    
+    // ==================== INIT ====================
+    // Check session AFTER all code is defined (at the very end)
+    if (sessionStorage.getItem(SESSION_KEY) === 'true') {
+      console.log('Session found, showing app...');
+      showApp();
+    } else {
+      console.log('No session, showing login screen');
+    }
   </script>
 </body>
 </html>
