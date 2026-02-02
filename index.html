@@ -725,9 +725,9 @@
     const SESSION_KEY = 'portfolio-auth-v2';
     const TELEGRAM_BOT_USERNAME = 'PinkyPablo_bot';
     
-    // Supabase config (stored in localStorage)
-    let supabaseUrl = localStorage.getItem('supabase_url') || '';
-    let supabaseKey = localStorage.getItem('supabase_key') || '';
+    // Supabase config (pre-configured, can override via localStorage)
+    let supabaseUrl = localStorage.getItem('supabase_url') || 'https://wfifrubydsyyrspneqst.supabase.co';
+    let supabaseKey = localStorage.getItem('supabase_key') || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmaWZydWJ5ZHN5eXJzcG5lcXN0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwNTUxNTQsImV4cCI6MjA4NTYzMTE1NH0.SbniMd6HizrdeZIRT77iguGDoJeo2MThEEXcXDm13UY';
     let supabase = null;
     
     // ==================== DEFAULT DATA ====================
