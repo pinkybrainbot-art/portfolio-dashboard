@@ -673,8 +673,8 @@
       if (e.key === 'Enter') checkPin();
     });
     
-    // Data structure
-    let data = JSON.parse(localStorage.getItem('portfolio-dashboard-v2') || 'null') || {
+    // Data structure - defaults
+    const DEFAULT_DATA = {
       holdings: [
         { symbol: 'TSLA', name: 'Tesla', shares: 185.31, price: 430.41, type: 'stock' },
         { symbol: 'CARR', name: 'Carrier Global', shares: 193.24, price: 59.58, type: 'stock' },
@@ -745,6 +745,18 @@
       ],
       lastUpdated: new Date().toISOString()
     };
+    
+    // Load data - try localStorage, fall back to defaults
+    let data;
+    try {
+      const stored = localStorage.getItem('portfolio-dashboard-v2');
+      const parsed = stored ? JSON.parse(stored) : null;
+      // Only use stored data if it has valid holdings
+      data = (parsed && parsed.holdings && parsed.holdings.length > 0) ? parsed : JSON.parse(JSON.stringify(DEFAULT_DATA));
+    } catch (e) {
+      console.log('localStorage failed, using defaults:', e);
+      data = JSON.parse(JSON.stringify(DEFAULT_DATA));
+    }
     
     function save() {
       data.lastUpdated = new Date().toISOString();
