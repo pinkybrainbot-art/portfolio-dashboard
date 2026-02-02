@@ -4,9 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow">
-  <meta name="googlebot" content="noindex, nofollow">
   <title>Portfolio Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -48,7 +48,6 @@
       margin-bottom: 15px;
     }
     .pin-input:focus { outline: none; border-color: #58a6ff; }
-    .pin-input::placeholder { letter-spacing: normal; font-size: 1rem; }
     .login-error { color: #f85149; font-size: 0.85rem; margin-bottom: 15px; display: none; }
     .login-btn {
       width: 100%;
@@ -91,7 +90,6 @@
     .nav-tab:hover { color: #c9d1d9; background: #21262d; }
     .nav-tab.active { color: #58a6ff; background: #21262d; }
     
-    /* Main Container */
     .container { padding: 20px; max-width: 1400px; margin: 0 auto; }
     .tab-content { display: none; }
     .tab-content.active { display: block; }
@@ -100,7 +98,7 @@
     .card {
       background: #161b22;
       border: 1px solid #30363d;
-      border-radius: 8px;
+      border-radius: 12px;
       padding: 20px;
       margin-bottom: 20px;
     }
@@ -109,208 +107,60 @@
       justify-content: space-between;
       align-items: center;
       margin-bottom: 15px;
-      padding-bottom: 10px;
-      border-bottom: 1px solid #30363d;
     }
-    .card-title { font-weight: 600; font-size: 1rem; }
+    .card-title { font-size: 1rem; color: #c9d1d9; }
     
     /* Grid Layouts */
-    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; }
-    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
-    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
-    @media (max-width: 900px) { .grid-4 { grid-template-columns: repeat(2, 1fr); } }
+    .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; }
     
-    /* Stats */
+    /* Stat Cards */
     .stat-card {
-      background: #0d1117;
+      background: #161b22;
       border: 1px solid #30363d;
-      border-radius: 8px;
-      padding: 20px;
+      border-radius: 12px;
+      padding: 25px;
       text-align: center;
     }
-    .stat-value { font-size: 1.8rem; font-weight: 600; color: #58a6ff; }
-    .stat-label { font-size: 0.8rem; color: #8b949e; margin-top: 5px; }
-    .positive { color: #238636; }
-    .negative { color: #f85149; }
+    .stat-value { font-size: 1.8rem; font-weight: 700; color: #58a6ff; margin-bottom: 5px; }
+    .stat-label { font-size: 0.85rem; color: #8b949e; }
     
-    /* Holdings Table */
-    .table-wrapper { overflow-x: auto; }
+    /* Tables */
+    .table-container { overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #30363d; }
+    th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #21262d; }
     th { color: #8b949e; font-weight: 500; font-size: 0.85rem; }
     td { font-size: 0.9rem; }
     tr:hover { background: #21262d; }
     .ticker { font-weight: 600; color: #58a6ff; }
-    
-    /* Section headers */
-    .section-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin: 20px 0 15px 0;
-      padding-bottom: 10px;
-      border-bottom: 1px solid #30363d;
-    }
-    .section-header h3 { font-size: 1rem; color: #c9d1d9; }
-    .section-badge {
-      padding: 3px 10px;
-      border-radius: 12px;
-      font-size: 0.75rem;
-      font-weight: 500;
-    }
-    .badge-stocks { background: #238636; color: white; }
-    .badge-crypto { background: #f0883e; color: white; }
-    
-    /* Transaction Log */
-    .transaction {
-      display: flex;
-      gap: 15px;
-      padding: 15px;
-      background: #0d1117;
-      border-radius: 6px;
-      margin-bottom: 10px;
-      border-left: 3px solid #30363d;
-    }
-    .transaction.buy { border-left-color: #238636; }
-    .transaction.sell { border-left-color: #f85149; }
-    .transaction-date { color: #8b949e; font-size: 0.8rem; min-width: 80px; }
-    .transaction-details { flex: 1; }
-    .transaction-action { font-weight: 600; }
-    .transaction-reason { color: #8b949e; font-size: 0.85rem; margin-top: 5px; }
-    
-    /* Thesis Cards */
-    .thesis-card {
-      background: #0d1117;
-      border: 1px solid #30363d;
-      border-radius: 8px;
-      padding: 15px;
-    }
-    .thesis-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-    .thesis-ticker { font-weight: 600; font-size: 1.1rem; color: #58a6ff; }
-    .thesis-conviction {
-      padding: 3px 10px;
-      border-radius: 12px;
-      font-size: 0.75rem;
-      font-weight: 500;
-    }
-    .conviction-high { background: #238636; color: white; }
-    .conviction-medium { background: #f0883e; color: white; }
-    .conviction-low { background: #8b949e; color: white; }
-    .thesis-text { font-size: 0.85rem; color: #c9d1d9; line-height: 1.5; margin-bottom: 10px; }
-    .thesis-catalysts { font-size: 0.8rem; color: #8b949e; }
-    .thesis-catalysts strong { color: #c9d1d9; }
-    
-    /* Watchlist */
-    .watchlist-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 15px;
-      background: #0d1117;
-      border-radius: 6px;
-      margin-bottom: 8px;
-      border: 1px solid #30363d;
-    }
-    .watchlist-item:hover { border-color: #58a6ff; }
-    .watchlist-ticker { font-weight: 600; color: #58a6ff; }
-    .watchlist-note { font-size: 0.8rem; color: #8b949e; margin-top: 3px; }
-    .watchlist-price { text-align: right; }
-    
-    /* Macro indicators */
-    .macro-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
-    .macro-item {
-      background: #0d1117;
-      border: 1px solid #30363d;
-      border-radius: 8px;
-      padding: 15px;
-    }
-    .macro-label { font-size: 0.8rem; color: #8b949e; margin-bottom: 5px; }
-    .macro-value { font-size: 1.2rem; font-weight: 600; }
-    .macro-desc { font-size: 0.75rem; color: #8b949e; margin-top: 5px; }
-    
-    /* Notes */
-    .note {
-      padding: 15px;
-      background: #0d1117;
-      border-radius: 6px;
-      margin-bottom: 10px;
-      border-left: 3px solid #a371f7;
-    }
-    .note.pinky { border-left-color: #58a6ff; }
-    .note-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-    .note-date { font-size: 0.75rem; color: #8b949e; }
-    .note-author { font-size: 0.75rem; padding: 2px 8px; border-radius: 10px; background: #21262d; }
-    .note-text { font-size: 0.9rem; line-height: 1.5; }
-    .note-tags { margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
-    .note-tag {
-      font-size: 0.7rem;
-      padding: 3px 8px;
-      background: #21262d;
-      border-radius: 12px;
-      color: #8b949e;
-    }
-    
-    /* Chart */
-    .chart-container { position: relative; height: 250px; }
+    .positive { color: #3fb950; }
+    .negative { color: #f85149; }
     
     /* Buttons */
     .btn {
       padding: 8px 16px;
-      border-radius: 6px;
       border: none;
+      border-radius: 6px;
       cursor: pointer;
       font-size: 0.85rem;
+      transition: all 0.2s;
     }
     .btn-primary { background: #238636; color: white; }
     .btn-primary:hover { background: #2ea043; }
     .btn-secondary { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; }
     .btn-secondary:hover { background: #30363d; }
-    .btn-sm { padding: 5px 10px; font-size: 0.75rem; }
-    
-    /* Modal */
-    .modal-overlay {
-      display: none;
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.7);
-      justify-content: center;
+    .btn-ask {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 12px 24px;
+      font-size: 1rem;
+      display: flex;
       align-items: center;
-      z-index: 100;
+      gap: 8px;
     }
-    .modal-overlay.active { display: flex; }
-    .modal {
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 12px;
-      padding: 25px;
-      width: 90%;
-      max-width: 500px;
-      max-height: 90vh;
-      overflow-y: auto;
-    }
-    .modal h2 { margin-bottom: 20px; font-size: 1.1rem; }
-    .form-group { margin-bottom: 15px; }
-    .form-group label { display: block; margin-bottom: 6px; font-size: 0.85rem; color: #8b949e; }
-    .form-group input, .form-group textarea, .form-group select {
-      width: 100%;
-      padding: 10px;
-      background: #0d1117;
-      border: 1px solid #30363d;
-      border-radius: 6px;
-      color: #c9d1d9;
-      font-size: 0.9rem;
-    }
-    .form-group textarea { min-height: 80px; resize: vertical; }
-    .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
-      outline: none;
-      border-color: #58a6ff;
-    }
-    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+    .btn-ask:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-ask:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
     
     /* Summary Bar */
     .summary-bar {
@@ -325,9 +175,182 @@
     .summary-item { display: flex; gap: 8px; align-items: center; }
     .summary-label { color: #8b949e; }
     .summary-value { font-weight: 600; }
+    
+    /* Holdings list */
+    .holding-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid #21262d;
+    }
+    .holding-item:last-child { border-bottom: none; }
+    .holding-ticker { font-weight: 600; color: #58a6ff; }
+    .holding-name { font-size: 0.8rem; color: #8b949e; }
+    .holding-value { text-align: right; }
+    .holding-shares { font-size: 0.8rem; color: #8b949e; }
+    
+    /* Notes */
+    .note-card {
+      background: #21262d;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 10px;
+    }
+    .note-meta { font-size: 0.75rem; color: #8b949e; margin-bottom: 8px; display: flex; gap: 10px; }
+    .note-author { color: #58a6ff; font-weight: 500; }
+    .note-text { font-size: 0.9rem; line-height: 1.5; }
+    .note-tags { margin-top: 10px; display: flex; gap: 5px; flex-wrap: wrap; }
+    .tag { background: #30363d; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; color: #8b949e; }
+    
+    /* Macro indicators */
+    .macro-card {
+      background: #21262d;
+      border-radius: 8px;
+      padding: 15px;
+      text-align: center;
+    }
+    .macro-value { font-size: 1.5rem; font-weight: 700; margin-bottom: 5px; }
+    .macro-name { font-size: 0.85rem; color: #8b949e; }
+    .macro-trend { font-size: 0.75rem; margin-top: 5px; }
+    .trend-up { color: #3fb950; }
+    .trend-down { color: #f85149; }
+    .trend-neutral { color: #8b949e; }
+    
+    /* Watchlist */
+    .watchlist-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      background: #21262d;
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+    .watchlist-ticker { font-weight: 600; color: #58a6ff; }
+    .watchlist-note { font-size: 0.8rem; color: #8b949e; }
+    
+    /* Theses */
+    .thesis-card {
+      background: #21262d;
+      border-radius: 8px;
+      padding: 15px;
+    }
+    .thesis-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .thesis-ticker { font-weight: 600; color: #58a6ff; font-size: 1.1rem; }
+    .thesis-conviction {
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+    }
+    .conviction-high { background: #238636; color: white; }
+    .conviction-medium { background: #9e6a03; color: white; }
+    .conviction-low { background: #6e7681; color: white; }
+    .thesis-text { font-size: 0.9rem; line-height: 1.5; color: #c9d1d9; }
+    
+    /* Ask Pinky Section */
+    .ask-pinky-section {
+      background: linear-gradient(135deg, #1a1f35 0%, #161b22 100%);
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 25px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .ask-pinky-title { font-size: 1.2rem; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+    .ask-pinky-desc { color: #8b949e; font-size: 0.9rem; margin-bottom: 20px; }
+    .ask-response {
+      background: #0d1117;
+      border-radius: 8px;
+      padding: 20px;
+      margin-top: 20px;
+      text-align: left;
+      display: none;
+    }
+    .ask-response.active { display: block; }
+    .ask-response-text { white-space: pre-wrap; line-height: 1.6; }
+    
+    /* Modals */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.7);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      padding: 20px;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 25px;
+      width: 100%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .modal h2 { margin-bottom: 20px; font-size: 1.2rem; }
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; margin-bottom: 5px; font-size: 0.85rem; color: #8b949e; }
+    .form-group input, .form-group textarea, .form-group select {
+      width: 100%;
+      padding: 10px;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      color: #c9d1d9;
+      font-size: 0.9rem;
+    }
+    .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+      outline: none;
+      border-color: #58a6ff;
+    }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+    
+    /* Config notice */
+    .config-notice {
+      background: #9e6a03;
+      color: white;
+      padding: 15px 20px;
+      text-align: center;
+      font-size: 0.9rem;
+    }
+    .config-notice a { color: white; }
+    
+    /* Loading */
+    .loading { text-align: center; padding: 40px; color: #8b949e; }
+    .spinner {
+      border: 3px solid #30363d;
+      border-top: 3px solid #58a6ff;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 15px;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .nav { flex-direction: column; align-items: flex-start; }
+      .stat-value { font-size: 1.4rem; }
+      .grid-4 { grid-template-columns: repeat(2, 1fr); }
+    }
   </style>
 </head>
 <body>
+  <!-- Config Notice (shown when Supabase not configured) -->
+  <div class="config-notice" id="configNotice" style="display:none;">
+    ⚠️ Supabase not configured. Using local data. <a href="#" onclick="showConfigModal()">Configure now</a>
+  </div>
+
   <!-- Login Screen -->
   <div class="login-screen" id="loginScreen">
     <div class="login-box">
@@ -341,315 +364,442 @@
   
   <!-- App Content -->
   <div class="app-content" id="appContent">
-  <nav class="nav">
-    <h1>📊 Portfolio Dashboard</h1>
-    <div class="nav-tabs">
-      <button class="nav-tab active" data-tab="overview">Overview</button>
-      <button class="nav-tab" data-tab="holdings">Holdings</button>
-      <button class="nav-tab" data-tab="theses">Theses</button>
-      <button class="nav-tab" data-tab="transactions">Log</button>
-      <button class="nav-tab" data-tab="watchlist">Watchlist</button>
-      <button class="nav-tab" data-tab="macro">Macro</button>
-      <button class="nav-tab" data-tab="notes">Notes</button>
+    <nav class="nav">
+      <h1>📊 Portfolio Dashboard</h1>
+      <div class="nav-tabs">
+        <button class="nav-tab active" data-tab="overview">Overview</button>
+        <button class="nav-tab" data-tab="holdings">Holdings</button>
+        <button class="nav-tab" data-tab="theses">Theses</button>
+        <button class="nav-tab" data-tab="transactions">Log</button>
+        <button class="nav-tab" data-tab="watchlist">Watchlist</button>
+        <button class="nav-tab" data-tab="macro">Macro</button>
+        <button class="nav-tab" data-tab="notes">Notes</button>
+      </div>
+    </nav>
+    
+    <div class="summary-bar">
+      <div class="summary-item">
+        <span class="summary-label">Total Value:</span>
+        <span class="summary-value" id="totalValue">$0</span>
+      </div>
+      <div class="summary-item">
+        <span class="summary-label">Cash:</span>
+        <span class="summary-value" id="cashValue">$0</span>
+      </div>
+      <div class="summary-item">
+        <span class="summary-label">Positions:</span>
+        <span class="summary-value" id="positionCount">0</span>
+      </div>
+      <div class="summary-item">
+        <span class="summary-label">Last Updated:</span>
+        <span class="summary-value" id="lastUpdated">-</span>
+      </div>
     </div>
-  </nav>
-  
-  <div class="summary-bar">
-    <div class="summary-item">
-      <span class="summary-label">Total Value:</span>
-      <span class="summary-value" id="totalValue">$0</span>
-    </div>
-    <div class="summary-item">
-      <span class="summary-label">Cash:</span>
-      <span class="summary-value" id="cashValue">$0</span>
-    </div>
-    <div class="summary-item">
-      <span class="summary-label">Positions:</span>
-      <span class="summary-value" id="positionCount">0</span>
-    </div>
-    <div class="summary-item">
-      <span class="summary-label">Last Updated:</span>
-      <span class="summary-value" id="lastUpdated">-</span>
-    </div>
-  </div>
-  
-  <div class="container">
-    <!-- Overview Tab -->
-    <div class="tab-content active" id="overview">
-      <div class="grid-4" style="margin-bottom: 20px;">
-        <div class="stat-card">
-          <div class="stat-value" id="statStocks">$0</div>
-          <div class="stat-label">Stocks</div>
+    
+    <div class="container">
+      <!-- Overview Tab -->
+      <div class="tab-content active" id="overview">
+        <div class="grid-4" style="margin-bottom: 20px;">
+          <div class="stat-card">
+            <div class="stat-value" id="statStocks">$0</div>
+            <div class="stat-label">Stocks</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="statCrypto">$0</div>
+            <div class="stat-label">Crypto</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="statCash">$0</div>
+            <div class="stat-label">Cash</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="statAllocation">0%</div>
+            <div class="stat-label">Invested</div>
+          </div>
         </div>
-        <div class="stat-card">
-          <div class="stat-value" id="statCrypto">$0</div>
-          <div class="stat-label">Crypto</div>
+        
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">📈 Portfolio Value (Weekly)</span>
+          </div>
+          <canvas id="valueChart" height="100"></canvas>
         </div>
-        <div class="stat-card">
-          <div class="stat-value" id="statCash">$0</div>
-          <div class="stat-label">Cash</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value" id="statAllocation">0%</div>
-          <div class="stat-label">Invested</div>
+        
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">💼 Top Holdings</span>
+            </div>
+            <div id="topHoldings"></div>
+          </div>
+          
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">🧠 Pinky's Thoughts</span>
+              <button class="btn btn-ask" onclick="askPinky('quick')" id="askQuickBtn">
+                🔮 Quick Analysis
+              </button>
+            </div>
+            <div id="pinkyNotes"></div>
+            <div class="ask-response" id="quickResponse">
+              <div class="ask-response-text" id="quickResponseText"></div>
+            </div>
+          </div>
         </div>
       </div>
       
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">📈 Portfolio Value (Weekly)</span>
-        </div>
-        <div class="chart-container">
-          <canvas id="valueChart"></canvas>
+      <!-- Holdings Tab -->
+      <div class="tab-content" id="holdings">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">📊 All Holdings</span>
+            <button class="btn btn-primary" onclick="openModal('holdingModal')">+ Add</button>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Symbol</th>
+                  <th>Name</th>
+                  <th>Shares</th>
+                  <th>Price</th>
+                  <th>Value</th>
+                  <th>Type</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="holdingsTable"></tbody>
+            </table>
+          </div>
         </div>
       </div>
       
-      <div class="grid-2">
+      <!-- Theses Tab -->
+      <div class="tab-content" id="theses">
         <div class="card">
           <div class="card-header">
-            <span class="card-title">💼 Top Holdings</span>
+            <span class="card-title">📝 Investment Theses</span>
+            <button class="btn btn-primary" onclick="openModal('thesisModal')">+ Add</button>
           </div>
-          <div id="topHoldings"></div>
+          <div class="grid-2" id="thesesGrid"></div>
         </div>
+      </div>
+      
+      <!-- Transactions Tab -->
+      <div class="tab-content" id="transactions">
         <div class="card">
           <div class="card-header">
-            <span class="card-title">🧠 Pinky's Thoughts</span>
-            <button class="btn btn-sm btn-secondary" onclick="openNoteModal()">+ Add</button>
+            <span class="card-title">📜 Transaction Log</span>
+            <button class="btn btn-primary" onclick="openModal('transactionModal')">+ Add</button>
           </div>
-          <div id="latestNotes"></div>
+          <div id="transactionLog"></div>
         </div>
       </div>
-    </div>
-    
-    <!-- Holdings Tab -->
-    <div class="tab-content" id="holdings">
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">💼 Holdings by Value</span>
+      
+      <!-- Watchlist Tab -->
+      <div class="tab-content" id="watchlist">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">👀 Watchlist</span>
+            <button class="btn btn-primary" onclick="openModal('watchlistModal')">+ Add</button>
+          </div>
+          <div id="watchlistItems"></div>
+        </div>
+      </div>
+      
+      <!-- Macro Tab -->
+      <div class="tab-content" id="macro">
+        <div class="ask-pinky-section">
+          <div class="ask-pinky-title">🧠 Ask Pinky for Macro Analysis</div>
+          <p class="ask-pinky-desc">Get an AI-powered analysis of current market conditions, liquidation levels, and how they might affect your portfolio.</p>
+          <button class="btn btn-ask" onclick="askPinky('macro')" id="askMacroBtn">
+            🔮 Analyze Market & Portfolio
+          </button>
+          <div class="ask-response" id="macroResponse">
+            <div class="ask-response-text" id="macroResponseText"></div>
+          </div>
         </div>
         
-        <div class="section-header">
-          <h3>📈 Stocks</h3>
-          <span class="section-badge badge-stocks" id="stocksTotal">$0</span>
-        </div>
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr><th>Symbol</th><th>Name</th><th>Shares</th><th>Price</th><th>Value</th><th>Allocation</th></tr>
-            </thead>
-            <tbody id="stocksTable"></tbody>
-          </table>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">🌍 Market Indicators</span>
+          </div>
+          <div class="grid-4" id="macroGrid"></div>
         </div>
         
-        <div class="section-header">
-          <h3>🪙 Crypto</h3>
-          <span class="section-badge badge-crypto" id="cryptoTotal">$0</span>
-        </div>
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr><th>Symbol</th><th>Name</th><th>Amount</th><th>Price</th><th>Value</th><th>Allocation</th></tr>
-            </thead>
-            <tbody id="cryptoTable"></tbody>
-          </table>
+        <div class="card" style="margin-top: 20px;">
+          <div class="card-header">
+            <span class="card-title">📊 Quick Links</span>
+          </div>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <a href="https://www.coinglass.com/LiquidationData" target="_blank" class="btn btn-secondary">📉 BTC Liquidations</a>
+            <a href="https://edition.cnn.com/markets/fear-and-greed" target="_blank" class="btn btn-secondary">😱 Fear & Greed</a>
+            <a href="https://fred.stlouisfed.org/series/M2SL" target="_blank" class="btn btn-secondary">💵 M2 Money Supply</a>
+            <a href="https://www.tradingview.com/symbols/TVC-DXY/" target="_blank" class="btn btn-secondary">💲 DXY Index</a>
+            <a href="https://www.tradingview.com/symbols/TVC-VIX/" target="_blank" class="btn btn-secondary">📊 VIX</a>
+          </div>
         </div>
       </div>
-    </div>
-    
-    <!-- Theses Tab -->
-    <div class="tab-content" id="theses">
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">💡 Investment Theses</span>
-          <button class="btn btn-sm btn-primary" onclick="openThesisModal()">+ Add Thesis</button>
+      
+      <!-- Notes Tab -->
+      <div class="tab-content" id="notes">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">📝 Notes</span>
+            <button class="btn btn-primary" onclick="openModal('noteModal')">+ Add</button>
+          </div>
+          <div id="notesList"></div>
         </div>
-        <div class="grid-2" id="thesesGrid"></div>
-      </div>
-    </div>
-    
-    <!-- Transactions Tab -->
-    <div class="tab-content" id="transactions">
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">📋 Transaction Log</span>
-          <button class="btn btn-sm btn-primary" onclick="openTransactionModal()">+ Log Transaction</button>
-        </div>
-        <div id="transactionLog"></div>
-      </div>
-    </div>
-    
-    <!-- Watchlist Tab -->
-    <div class="tab-content" id="watchlist">
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">👀 Stock Watchlist</span>
-          <button class="btn btn-sm btn-primary" onclick="openWatchlistModal()">+ Add</button>
-        </div>
-        <div id="watchlistItems"></div>
-      </div>
-    </div>
-    
-    <!-- Macro Tab -->
-    <div class="tab-content" id="macro">
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">🌍 US Liquidity & Macro Indicators</span>
-        </div>
-        <p style="color: #8b949e; margin-bottom: 20px; font-size: 0.85rem;">Key indicators to monitor for market direction. Liquidity drives everything.</p>
-        <div class="macro-grid" id="macroGrid"></div>
-      </div>
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">📚 Macro Resources</span>
-        </div>
-        <div id="macroResources"></div>
-      </div>
-    </div>
-    
-    <!-- Notes Tab -->
-    <div class="tab-content" id="notes">
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">🧠 Market Notes & Thoughts</span>
-          <button class="btn btn-sm btn-primary" onclick="openNoteModal()">+ Add Note</button>
-        </div>
-        <div id="allNotes"></div>
       </div>
     </div>
   </div>
-  </div><!-- End app-content -->
-
+  
   <!-- Modals -->
+  <div class="modal-overlay" id="holdingModal">
+    <div class="modal">
+      <h2>Add/Edit Holding</h2>
+      <div class="form-group">
+        <label>Symbol</label>
+        <input type="text" id="holdingSymbol" placeholder="TSLA">
+      </div>
+      <div class="form-group">
+        <label>Name</label>
+        <input type="text" id="holdingName" placeholder="Tesla Inc">
+      </div>
+      <div class="form-group">
+        <label>Shares</label>
+        <input type="number" step="0.00000001" id="holdingShares" placeholder="100">
+      </div>
+      <div class="form-group">
+        <label>Current Price</label>
+        <input type="number" step="0.01" id="holdingPrice" placeholder="250.00">
+      </div>
+      <div class="form-group">
+        <label>Type</label>
+        <select id="holdingType">
+          <option value="stock">Stock</option>
+          <option value="crypto">Crypto</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('holdingModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveHolding()">Save</button>
+      </div>
+    </div>
+  </div>
+  
   <div class="modal-overlay" id="noteModal">
     <div class="modal">
       <h2>Add Note</h2>
-      <form id="noteForm">
-        <div class="form-group">
-          <label>Note</label>
-          <textarea id="noteText" required placeholder="What are you thinking about the market?"></textarea>
-        </div>
-        <div class="form-group">
-          <label>Author</label>
-          <select id="noteAuthor">
-            <option value="chris">Chris</option>
-            <option value="pinky">Pinky 🧠</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Tags (comma separated)</label>
-          <input type="text" id="noteTags" placeholder="macro, crypto, earnings">
-        </div>
-        <div class="modal-actions">
-          <button type="button" class="btn btn-secondary" onclick="closeModal('noteModal')">Cancel</button>
-          <button type="submit" class="btn btn-primary">Save</button>
-        </div>
-      </form>
+      <div class="form-group">
+        <label>Author</label>
+        <select id="noteAuthor">
+          <option value="chris">Chris</option>
+          <option value="pinky">Pinky</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Note</label>
+        <textarea id="noteText" rows="4" placeholder="Your thoughts..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Tags (comma separated)</label>
+        <input type="text" id="noteTags" placeholder="strategy, crypto">
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('noteModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveNote()">Save</button>
+      </div>
     </div>
   </div>
   
   <div class="modal-overlay" id="transactionModal">
     <div class="modal">
-      <h2>Log Transaction</h2>
-      <form id="transactionForm">
-        <div class="form-group">
-          <label>Type</label>
-          <select id="txType">
-            <option value="buy">Buy</option>
-            <option value="sell">Sell</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Symbol</label>
-          <input type="text" id="txSymbol" required placeholder="TSLA">
-        </div>
-        <div class="form-group">
-          <label>Shares/Amount</label>
-          <input type="number" id="txShares" step="any" required>
-        </div>
-        <div class="form-group">
-          <label>Price</label>
-          <input type="number" id="txPrice" step="any" required>
-        </div>
-        <div class="form-group">
-          <label>Reason / Notes</label>
-          <textarea id="txReason" placeholder="Why did you make this trade?"></textarea>
-        </div>
-        <div class="modal-actions">
-          <button type="button" class="btn btn-secondary" onclick="closeModal('transactionModal')">Cancel</button>
-          <button type="submit" class="btn btn-primary">Save</button>
-        </div>
-      </form>
+      <h2>Add Transaction</h2>
+      <div class="form-group">
+        <label>Symbol</label>
+        <input type="text" id="txSymbol" placeholder="TSLA">
+      </div>
+      <div class="form-group">
+        <label>Action</label>
+        <select id="txAction">
+          <option value="buy">Buy</option>
+          <option value="sell">Sell</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Shares</label>
+        <input type="number" step="0.00000001" id="txShares" placeholder="10">
+      </div>
+      <div class="form-group">
+        <label>Price</label>
+        <input type="number" step="0.01" id="txPrice" placeholder="250.00">
+      </div>
+      <div class="form-group">
+        <label>Date</label>
+        <input type="date" id="txDate">
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('transactionModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveTransaction()">Save</button>
+      </div>
     </div>
   </div>
   
   <div class="modal-overlay" id="watchlistModal">
     <div class="modal">
       <h2>Add to Watchlist</h2>
-      <form id="watchlistForm">
-        <div class="form-group">
-          <label>Symbol</label>
-          <input type="text" id="wlSymbol" required placeholder="CRWV">
-        </div>
-        <div class="form-group">
-          <label>Notes / Why watching</label>
-          <textarea id="wlNotes" placeholder="AI infrastructure pure play, watching for entry..."></textarea>
-        </div>
-        <div class="form-group">
-          <label>Target Entry Price (optional)</label>
-          <input type="number" id="wlTarget" step="any" placeholder="80.00">
-        </div>
-        <div class="modal-actions">
-          <button type="button" class="btn btn-secondary" onclick="closeModal('watchlistModal')">Cancel</button>
-          <button type="submit" class="btn btn-primary">Save</button>
-        </div>
-      </form>
+      <div class="form-group">
+        <label>Symbol</label>
+        <input type="text" id="watchSymbol" placeholder="AAPL">
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea id="watchNotes" rows="3" placeholder="Why watching..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Target Entry Price</label>
+        <input type="number" step="0.01" id="watchTarget" placeholder="150.00">
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('watchlistModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveWatchlist()">Save</button>
+      </div>
     </div>
   </div>
   
   <div class="modal-overlay" id="thesisModal">
     <div class="modal">
       <h2>Add Investment Thesis</h2>
-      <form id="thesisForm">
-        <div class="form-group">
-          <label>Symbol</label>
-          <input type="text" id="thSymbol" required placeholder="TSLA">
-        </div>
-        <div class="form-group">
-          <label>Conviction</label>
-          <select id="thConviction">
-            <option value="high">High</option>
-            <option value="medium">Medium</option>
-            <option value="low">Low</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Bull Case</label>
-          <textarea id="thThesis" required placeholder="Why do you believe in this investment?"></textarea>
-        </div>
-        <div class="form-group">
-          <label>Key Catalysts</label>
-          <textarea id="thCatalysts" placeholder="What events could drive the price?"></textarea>
-        </div>
-        <div class="form-group">
-          <label>Risks</label>
-          <textarea id="thRisks" placeholder="What could go wrong?"></textarea>
-        </div>
-        <div class="modal-actions">
-          <button type="button" class="btn btn-secondary" onclick="closeModal('thesisModal')">Cancel</button>
-          <button type="submit" class="btn btn-primary">Save</button>
-        </div>
-      </form>
+      <div class="form-group">
+        <label>Symbol</label>
+        <input type="text" id="thesisSymbol" placeholder="TSLA">
+      </div>
+      <div class="form-group">
+        <label>Thesis</label>
+        <textarea id="thesisText" rows="4" placeholder="Your investment thesis..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Conviction</label>
+        <select id="thesisConviction">
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Target Price</label>
+        <input type="number" step="0.01" id="thesisTarget" placeholder="500.00">
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('thesisModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveThesis()">Save</button>
+      </div>
+    </div>
+  </div>
+  
+  <div class="modal-overlay" id="configModal">
+    <div class="modal">
+      <h2>⚙️ Supabase Configuration</h2>
+      <p style="color: #8b949e; margin-bottom: 20px; font-size: 0.9rem;">
+        Connect to Supabase for persistent storage. Get your credentials from your Supabase project settings.
+      </p>
+      <div class="form-group">
+        <label>Supabase URL</label>
+        <input type="text" id="configUrl" placeholder="https://xxxxx.supabase.co">
+      </div>
+      <div class="form-group">
+        <label>Anon Key</label>
+        <input type="text" id="configKey" placeholder="eyJhbGci...">
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('configModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveConfig()">Connect</button>
+      </div>
     </div>
   </div>
 
   <script>
-    // PIN Authentication
-    const CORRECT_PIN = '1984';
-    const SESSION_KEY = 'portfolio-auth';
+    // ==================== CONFIG ====================
+    const PIN_HASH = '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92'; // SHA256 of '123456'
+    const SESSION_KEY = 'portfolio-auth-v2';
+    const TELEGRAM_BOT_USERNAME = 'PinkyPablo_bot';
     
-    function checkPin() {
+    // Supabase config (stored in localStorage)
+    let supabaseUrl = localStorage.getItem('supabase_url') || '';
+    let supabaseKey = localStorage.getItem('supabase_key') || '';
+    let supabase = null;
+    
+    // ==================== DEFAULT DATA ====================
+    const DEFAULT_DATA = {
+      holdings: [
+        { symbol: 'TSLA', name: 'Tesla', shares: 185.31, price: 398.09, type: 'stock' },
+        { symbol: 'CARR', name: 'Carrier Global', shares: 193.24, price: 68.94, type: 'stock' },
+        { symbol: 'ANET', name: 'Arista Networks', shares: 77.07, price: 115.60, type: 'stock' },
+        { symbol: 'NVDA', name: 'NVIDIA', shares: 38.57, price: 116.66, type: 'stock' },
+        { symbol: 'FTNT', name: 'Fortinet', shares: 84.44, price: 103.74, type: 'stock' },
+        { symbol: 'MRVL', name: 'Marvell Technology', shares: 83.81, price: 106.78, type: 'stock' },
+        { symbol: 'SNOW', name: 'Snowflake', shares: 48.14, price: 186.26, type: 'stock' },
+        { symbol: 'HIMS', name: 'Hims & Hers Health', shares: 545.40, price: 54.37, type: 'stock' },
+        { symbol: 'MSTR', name: 'MicroStrategy', shares: 153.45, price: 338.78, type: 'stock' },
+        { symbol: 'BTC', name: 'Bitcoin', shares: 1, price: 97762, type: 'crypto' },
+        { symbol: 'SOL', name: 'Solana', shares: 121, price: 189.34, type: 'crypto' },
+      ],
+      cash: 45000,
+      weeklyValues: [
+        { date: '2026-01-06', value: 295000 },
+        { date: '2026-01-13', value: 302000 },
+        { date: '2026-01-20', value: 298000 },
+        { date: '2026-01-27', value: 314000 },
+        { date: '2026-02-02', value: 311260 },
+      ],
+      theses: [
+        { symbol: 'TSLA', thesis: 'Robotaxi and humanoid robots not priced in. Full autonomy could 10x revenue. Optimus humanoid is massive TAM.', conviction: 'high', target: 1000 },
+        { symbol: 'NVDA', thesis: 'AI infrastructure backbone. Every major company needs their chips. Moat is deep.', conviction: 'high', target: 200 },
+        { symbol: 'HIMS', thesis: 'DTC healthcare disruption. Growing revenue 50%+ YoY. GLP-1s are huge catalyst.', conviction: 'medium', target: 80 },
+      ],
+      watchlist: [
+        { symbol: 'CRWV', notes: 'AI infrastructure play. High risk/reward. Watch for entry.', target: 35 },
+        { symbol: 'RKLB', notes: 'Space optionality. Rocket Lab has real customers.', target: 20 },
+        { symbol: 'MU', notes: 'Best value in semis. Memory cycle turning.', target: 90 },
+      ],
+      transactions: [
+        { symbol: 'SUI', action: 'sell', shares: 2500, price: 4.20, date: '2026-01-30', notes: 'Taking profits, crypto bearish' },
+        { symbol: 'IONQ', action: 'sell', shares: 150, price: 42.50, date: '2026-01-28', notes: 'Quantum hype overblown' },
+        { symbol: 'LMT', action: 'sell', shares: 45, price: 485.00, date: '2026-01-25', notes: 'Taking profits' },
+      ],
+      notes: [
+        { date: '2026-02-02', author: 'pinky', text: 'Portfolio repositioning complete. Sold speculative positions and holding $45k cash for high-conviction entries.', tags: ['strategy'] },
+        { date: '2026-02-02', author: 'pinky', text: 'Crypto in bear mode — BTC dominance rising. Keeping core BTC + SOL positions. Patience over FOMO.', tags: ['crypto', 'macro'] },
+        { date: '2026-02-01', author: 'chris', text: 'Want long term holds that can realistically 3X. Looking for undervalued plays.', tags: ['strategy'] },
+      ],
+      macroIndicators: [
+        { id: 'vix', name: 'VIX', value: '18.2', trend: 'up' },
+        { id: 'dxy', name: 'DXY', value: '108.4', trend: 'up' },
+        { id: 'btc-dom', name: 'BTC Dominance', value: '58.2%', trend: 'up' },
+        { id: '10y', name: '10Y Treasury', value: '4.52%', trend: 'up' },
+        { id: 'fear-greed', name: 'Fear & Greed', value: '44', trend: 'down' },
+        { id: 'm2', name: 'M2 YoY', value: '+3.2%', trend: 'up' },
+        { id: 'spx', name: 'S&P 500', value: '6,040', trend: 'neutral' },
+        { id: 'btc-liq', name: 'BTC Liq Levels', value: '$92k / $104k', trend: 'neutral' },
+      ],
+      lastUpdated: new Date().toISOString()
+    };
+    
+    let data = JSON.parse(JSON.stringify(DEFAULT_DATA));
+    
+    // ==================== AUTH ====================
+    async function sha256(message) {
+      const msgBuffer = new TextEncoder().encode(message);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+    
+    async function checkPin() {
       const pin = document.getElementById('pinInput').value;
-      if (pin === CORRECT_PIN) {
+      const hash = await sha256(pin);
+      if (hash === PIN_HASH) {
         sessionStorage.setItem(SESSION_KEY, 'true');
         showApp();
       } else {
@@ -662,7 +812,8 @@
     function showApp() {
       document.getElementById('loginScreen').style.display = 'none';
       document.getElementById('appContent').style.display = 'block';
-      initChart();
+      initSupabase();
+      loadData();
     }
     
     if (sessionStorage.getItem(SESSION_KEY) === 'true') {
@@ -673,96 +824,108 @@
       if (e.key === 'Enter') checkPin();
     });
     
-    // Data structure - defaults
-    const DEFAULT_DATA = {
-      holdings: [
-        { symbol: 'TSLA', name: 'Tesla', shares: 185.31, price: 430.41, type: 'stock' },
-        { symbol: 'CARR', name: 'Carrier Global', shares: 193.24, price: 59.58, type: 'stock' },
-        { symbol: 'ANET', name: 'Arista Networks', shares: 77.07, price: 141.74, type: 'stock' },
-        { symbol: 'NVDA', name: 'NVIDIA', shares: 38.57, price: 188.52, type: 'stock' },
-        { symbol: 'FTNT', name: 'Fortinet', shares: 84.44, price: 81.26, type: 'stock' },
-        { symbol: 'MRVL', name: 'Marvell Technology', shares: 83.81, price: 78.92, type: 'stock' },
-        { symbol: 'SNOW', name: 'Snowflake', shares: 48.14, price: 192.70, type: 'stock' },
-        { symbol: 'HIMS', name: 'Hims & Hers Health', shares: 545.40, price: 27.09, type: 'stock' },
-        { symbol: 'MSTR', name: 'MicroStrategy', shares: 153.45, price: 149.71, type: 'stock' },
-        { symbol: 'FIGR', name: 'Figure Technology', shares: 121, price: 64.49, type: 'stock' },
-        { symbol: 'BTC', name: 'Bitcoin', shares: 1, price: 76352, type: 'crypto' },
-        { symbol: 'SOL', name: 'Solana', shares: 121, price: 100.30, type: 'crypto' },
-      ],
-      cash: 45000,
-      weeklyValues: [
-        { date: '2026-01-06', value: 295000 },
-        { date: '2026-01-13', value: 302000 },
-        { date: '2026-01-20', value: 298000 },
-        { date: '2026-01-27', value: 314000 },
-        { date: '2026-02-02', value: 335000 },
-      ],
-      transactions: [
-        { date: '2026-02-02', type: 'sell', symbol: 'LMT', shares: 20.66, price: 634.22, reason: 'Taking profits after 31% YTD run' },
-        { date: '2026-02-02', type: 'sell', symbol: 'IONQ', shares: 107.74, price: 39.98, reason: 'Reducing speculative positions, want high growth stocks' },
-        { date: '2026-02-02', type: 'sell', symbol: 'SERV', shares: 619.92, price: 10.43, reason: 'Reducing speculative positions' },
-        { date: '2026-02-02', type: 'sell', symbol: 'SUI', shares: 18986.6, price: 1.10, reason: 'Lost confidence in alts short-term, crypto bear market' },
-      ],
-      theses: [
-        { symbol: 'TSLA', conviction: 'high', thesis: 'Robotaxi and humanoid robots (Optimus) are not priced in. FSD improving rapidly. Energy business undervalued.', catalysts: 'Robotaxi launch, Optimus production, FSD v13', risks: 'Elon distraction, competition, macro' },
-        { symbol: 'FIGR', conviction: 'medium', thesis: 'Forward-facing fintech that could be a leader in tokenization. RWA tokenization is a massive TAM.', catalysts: 'Tokenization adoption, regulatory clarity', risks: 'Regulatory risk, competition' },
-        { symbol: 'NVDA', conviction: 'high', thesis: 'AI infrastructure backbone. Every major AI model runs on NVIDIA GPUs. Data center demand insatiable.', catalysts: 'Earnings Feb 25, Blackwell ramp, AI capex cycle', risks: 'China restrictions, AMD/custom silicon competition' },
-        { symbol: 'MSTR', conviction: 'medium', thesis: 'Leveraged BTC play with corporate treasury strategy. Saylor accumulation continues.', catalysts: 'BTC price, potential S&P 500 inclusion', risks: 'BTC bear market, leverage risk' },
-      ],
-      watchlist: [
-        { symbol: 'CRWV', notes: 'AI infrastructure pure play, down 50% from highs. Revenue exploding.', target: 80 },
-        { symbol: 'MU', notes: 'HBM for AI, forward P/E only 13. Best value in semis.', target: 350 },
-        { symbol: 'RKLB', notes: 'Space optionality, Neutron rocket catalyst.', target: 60 },
-        { symbol: 'AMZN', notes: 'AWS + AI + advertising. Most diversified big tech.', target: null },
-        { symbol: 'AVGO', notes: 'Custom AI chips for hyperscalers. OpenAI deal.', target: null },
-        { symbol: 'CRWD', notes: 'Cybersecurity leader, recurring revenue.', target: null },
-        { symbol: 'DDOG', notes: 'Observability for cloud. AI monitoring opportunity.', target: null },
-        { symbol: 'GOOG', notes: 'Search + YouTube + Waymo optionality.', target: null },
-        { symbol: 'META', notes: 'AI + Metaverse + advertising machine.', target: null },
-        { symbol: 'MSFT', notes: 'Azure + OpenAI partnership + enterprise AI.', target: null },
-        { symbol: 'PLTR', notes: 'Government + enterprise AI. High valuation but strong moat.', target: null },
-        { symbol: 'ROK', notes: 'Industrial automation, reshoring beneficiary.', target: null },
-        { symbol: 'TSMC', notes: 'Foundry monopoly for advanced chips.', target: null },
-        { symbol: 'VRT', notes: 'Data center cooling/power infrastructure.', target: null },
-      ],
-      macroIndicators: [
-        { id: 'm2', name: 'M2 Money Supply', value: '$21.5T', trend: 'up', desc: 'Total money in circulation. Rising = bullish for assets.' },
-        { id: 'dxy', name: 'DXY (Dollar Index)', value: '103.5', trend: 'neutral', desc: 'Dollar strength. High = headwind for risk assets.' },
-        { id: 'ppi', name: 'PPI (Producer Prices)', value: '+1.8% YoY', trend: 'down', desc: 'Wholesale inflation. Leading indicator for CPI.' },
-        { id: 'cpi', name: 'CPI (Consumer Prices)', value: '+2.9% YoY', trend: 'down', desc: 'Consumer inflation. Fed watches this closely.' },
-        { id: 'rrp', name: 'Reverse Repo (RRP)', value: '$500B', trend: 'down', desc: 'Liquidity parked at Fed. Draining = more market liquidity.' },
-        { id: 'wresbal', name: 'WRESBAL (Bank Reserves)', value: '$3.3T', trend: 'neutral', desc: 'Bank reserves at Fed. Proxy for system liquidity.' },
-        { id: 'wtregen', name: 'WTREGEN (Treasury General)', value: '$750B', trend: 'up', desc: 'Treasury cash balance. Drawdown = liquidity injection.' },
-        { id: 'rates', name: 'Fed Funds Rate', value: '4.25-4.50%', trend: 'neutral', desc: 'Interest rate target. Cuts = bullish, hikes = bearish.' },
-        { id: 'ism', name: 'ISM Manufacturing', value: '49.2', trend: 'up', desc: 'Factory activity. Above 50 = expansion.' },
-        { id: 'nasdaq', name: 'Nasdaq Composite', value: '19,500', trend: 'up', desc: 'Tech-heavy index. Our portfolio beta.' },
-      ],
-      notes: [
-        { date: '2026-02-02', author: 'pinky', text: 'Portfolio repositioning complete. Sold speculative positions (IONQ, SERV, SUI) and took profits on LMT. Now holding $45k cash for high-conviction entries. Looking for asymmetric setups where major catalysts aren\'t priced in.', tags: ['strategy', 'rebalancing'] },
-        { date: '2026-02-02', author: 'pinky', text: 'Crypto in bear market — alts getting crushed while BTC dominance climbs. Reduced exposure by selling SUI. Keeping BTC and SOL as core positions. Will reassess when sentiment shifts.', tags: ['crypto', 'macro'] },
-        { date: '2026-02-02', author: 'pinky', text: 'Top watchlist candidates for 3X potential: CRWV (AI infra, high risk/reward), MU (best value in semis), RKLB (space optionality). Waiting for better entries — patience over FOMO.', tags: ['watchlist', 'research'] },
-        { date: '2026-02-02', author: 'chris', text: 'Want long term holds that can realistically 3X. Anything undervalued. TSLA thesis: robotaxi and humanoid robots aren\'t priced in.', tags: ['strategy', 'thesis'] },
-      ],
-      lastUpdated: new Date().toISOString()
-    };
-    
-    // Load data - try localStorage, fall back to defaults
-    let data;
-    try {
-      const stored = localStorage.getItem('portfolio-dashboard-v2');
-      const parsed = stored ? JSON.parse(stored) : null;
-      // Only use stored data if it has valid holdings
-      data = (parsed && parsed.holdings && parsed.holdings.length > 0) ? parsed : JSON.parse(JSON.stringify(DEFAULT_DATA));
-    } catch (e) {
-      console.log('localStorage failed, using defaults:', e);
-      data = JSON.parse(JSON.stringify(DEFAULT_DATA));
+    // ==================== SUPABASE ====================
+    function initSupabase() {
+      if (supabaseUrl && supabaseKey) {
+        try {
+          supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+          document.getElementById('configNotice').style.display = 'none';
+          console.log('Supabase connected');
+        } catch (e) {
+          console.error('Supabase init failed:', e);
+          document.getElementById('configNotice').style.display = 'block';
+        }
+      } else {
+        document.getElementById('configNotice').style.display = 'block';
+      }
     }
     
-    function save() {
+    async function loadData() {
+      if (supabase) {
+        try {
+          // Load from Supabase
+          const [holdings, settings, snapshots, theses, watchlist, transactions, notes, macro] = await Promise.all([
+            supabase.from('holdings').select('*'),
+            supabase.from('settings').select('*'),
+            supabase.from('snapshots').select('*').order('date', { ascending: true }),
+            supabase.from('theses').select('*'),
+            supabase.from('watchlist').select('*'),
+            supabase.from('transactions').select('*').order('date', { ascending: false }),
+            supabase.from('notes').select('*').order('created_at', { ascending: false }),
+            supabase.from('macro_indicators').select('*'),
+          ]);
+          
+          if (holdings.data?.length) {
+            // Join with prices
+            const prices = await supabase.from('prices').select('*');
+            const priceMap = Object.fromEntries((prices.data || []).map(p => [p.symbol, p.price]));
+            
+            data.holdings = holdings.data.map(h => ({
+              symbol: h.symbol,
+              name: h.name,
+              shares: parseFloat(h.shares),
+              price: priceMap[h.symbol] || 0,
+              type: h.type
+            }));
+          }
+          
+          if (settings.data?.length) {
+            const cashSetting = settings.data.find(s => s.key === 'cash');
+            if (cashSetting) data.cash = parseFloat(cashSetting.value);
+          }
+          
+          if (snapshots.data?.length) {
+            data.weeklyValues = snapshots.data.map(s => ({ date: s.date, value: parseFloat(s.total_value) }));
+          }
+          
+          if (theses.data?.length) {
+            data.theses = theses.data.map(t => ({ symbol: t.symbol, thesis: t.thesis, conviction: t.conviction, target: t.target_price }));
+          }
+          
+          if (watchlist.data?.length) {
+            data.watchlist = watchlist.data.map(w => ({ symbol: w.symbol, notes: w.notes, target: w.target_entry }));
+          }
+          
+          if (transactions.data?.length) {
+            data.transactions = transactions.data.map(t => ({ symbol: t.symbol, action: t.action, shares: parseFloat(t.shares), price: parseFloat(t.price), date: t.date, notes: t.notes }));
+          }
+          
+          if (notes.data?.length) {
+            data.notes = notes.data.map(n => ({ date: n.created_at.split('T')[0], author: n.author, text: n.content, tags: n.tags || [] }));
+          }
+          
+          if (macro.data?.length) {
+            data.macroIndicators = macro.data.map(m => ({ id: m.id, name: m.name, value: m.value, trend: m.trend }));
+          }
+          
+          data.lastUpdated = new Date().toISOString();
+          console.log('Data loaded from Supabase');
+        } catch (e) {
+          console.error('Supabase load error:', e);
+        }
+      } else {
+        // Try localStorage fallback
+        try {
+          const stored = localStorage.getItem('portfolio-dashboard-v3');
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            if (parsed.holdings?.length) data = parsed;
+          }
+        } catch (e) {
+          console.log('Using default data');
+        }
+      }
+      
+      initChart();
+      render();
+    }
+    
+    function saveLocal() {
       data.lastUpdated = new Date().toISOString();
-      localStorage.setItem('portfolio-dashboard-v2', JSON.stringify(data));
+      localStorage.setItem('portfolio-dashboard-v3', JSON.stringify(data));
     }
     
+    // ==================== HELPERS ====================
     function formatCurrency(n) {
       return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
     }
@@ -779,11 +942,14 @@
       return { stocksValue, cryptoValue, totalInvested, totalValue };
     }
     
+    // ==================== CHART ====================
     let valueChart = null;
     
     function initChart() {
       const ctx = document.getElementById('valueChart')?.getContext('2d');
       if (!ctx) return;
+      
+      if (valueChart) valueChart.destroy();
       
       valueChart = new Chart(ctx, {
         type: 'line',
@@ -795,36 +961,30 @@
             borderColor: '#58a6ff',
             backgroundColor: 'rgba(88, 166, 255, 0.1)',
             fill: true,
-            tension: 0.3,
-            pointRadius: 4,
-            pointBackgroundColor: '#58a6ff'
+            tension: 0.3
           }]
         },
         options: {
           responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false }
-          },
+          plugins: { legend: { display: false } },
           scales: {
-            x: {
-              grid: { color: '#30363d' },
-              ticks: { color: '#8b949e' }
-            },
             y: {
-              grid: { color: '#30363d' },
-              ticks: { 
-                color: '#8b949e',
-                callback: v => '$' + (v/1000) + 'k'
-              }
+              ticks: { color: '#8b949e', callback: v => '$' + (v/1000) + 'k' },
+              grid: { color: '#21262d' }
+            },
+            x: {
+              ticks: { color: '#8b949e' },
+              grid: { display: false }
             }
           }
         }
       });
     }
     
+    // ==================== RENDER ====================
     function render() {
       const { stocksValue, cryptoValue, totalInvested, totalValue } = calculateTotals();
+      const investedPercent = totalValue > 0 ? Math.round((totalInvested / totalValue) * 100) : 0;
       
       // Summary bar
       document.getElementById('totalValue').textContent = formatCurrency(totalValue);
@@ -836,55 +996,44 @@
       document.getElementById('statStocks').textContent = formatCurrency(stocksValue);
       document.getElementById('statCrypto').textContent = formatCurrency(cryptoValue);
       document.getElementById('statCash').textContent = formatCurrency(data.cash);
-      document.getElementById('statAllocation').textContent = Math.round(totalInvested / totalValue * 100) + '%';
+      document.getElementById('statAllocation').textContent = investedPercent + '%';
       
-      // Top holdings (sorted by value)
+      // Top holdings
       const sorted = [...data.holdings].sort((a, b) => (b.shares * b.price) - (a.shares * a.price)).slice(0, 6);
       document.getElementById('topHoldings').innerHTML = sorted.map(h => `
-        <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #30363d;">
-          <span><span class="ticker">${h.symbol}</span> <span style="color: #8b949e; font-size: 0.8rem;">${h.type === 'crypto' ? '🪙' : ''}</span></span>
-          <span>${formatCurrency(h.shares * h.price)}</span>
+        <div class="holding-item">
+          <div>
+            <div class="holding-ticker">${h.symbol}</div>
+            <div class="holding-name">${h.name}</div>
+          </div>
+          <div class="holding-value">
+            <div>${formatCurrency(h.shares * h.price)}</div>
+            <div class="holding-shares">${h.shares.toFixed(2)} @ $${h.price.toLocaleString()}</div>
+          </div>
         </div>
       `).join('');
       
-      // Latest notes (Pinky's thoughts)
+      // Pinky's notes
       const pinkyNotes = data.notes.filter(n => n.author === 'pinky').slice(0, 2);
-      document.getElementById('latestNotes').innerHTML = pinkyNotes.map(n => `
-        <div class="note pinky">
-          <div class="note-header">
-            <span class="note-date">${formatDate(n.date)}</span>
-            <span class="note-author">🧠 Pinky</span>
-          </div>
+      document.getElementById('pinkyNotes').innerHTML = pinkyNotes.map(n => `
+        <div class="note-card">
+          <div class="note-meta"><span>${formatDate(n.date)}</span></div>
           <div class="note-text">${n.text}</div>
         </div>
-      `).join('') || '<p style="color: #8b949e;">No thoughts yet</p>';
+      `).join('') || '<p style="color:#8b949e;">No recent thoughts. Click "Quick Analysis" for insights.</p>';
       
-      // Holdings tables (separated and sorted by value)
+      // Holdings table
       const stocks = data.holdings.filter(h => h.type === 'stock').sort((a, b) => (b.shares * b.price) - (a.shares * a.price));
       const crypto = data.holdings.filter(h => h.type === 'crypto').sort((a, b) => (b.shares * b.price) - (a.shares * a.price));
-      
-      document.getElementById('stocksTotal').textContent = formatCurrency(stocksValue);
-      document.getElementById('cryptoTotal').textContent = formatCurrency(cryptoValue);
-      
-      document.getElementById('stocksTable').innerHTML = stocks.map(h => `
+      document.getElementById('holdingsTable').innerHTML = [...stocks, ...crypto].map(h => `
         <tr>
           <td class="ticker">${h.symbol}</td>
           <td>${h.name}</td>
-          <td>${h.shares.toLocaleString()}</td>
+          <td>${h.shares.toFixed(4)}</td>
           <td>$${h.price.toLocaleString()}</td>
           <td>${formatCurrency(h.shares * h.price)}</td>
-          <td>${Math.round(h.shares * h.price / totalValue * 100)}%</td>
-        </tr>
-      `).join('');
-      
-      document.getElementById('cryptoTable').innerHTML = crypto.map(h => `
-        <tr>
-          <td class="ticker">${h.symbol}</td>
-          <td>${h.name}</td>
-          <td>${h.shares.toLocaleString()}</td>
-          <td>$${h.price.toLocaleString()}</td>
-          <td>${formatCurrency(h.shares * h.price)}</td>
-          <td>${Math.round(h.shares * h.price / totalValue * 100)}%</td>
+          <td>${h.type}</td>
+          <td><button class="btn btn-secondary" onclick="deleteHolding('${h.symbol}')">×</button></td>
         </tr>
       `).join('');
       
@@ -893,24 +1042,23 @@
         <div class="thesis-card">
           <div class="thesis-header">
             <span class="thesis-ticker">${t.symbol}</span>
-            <span class="thesis-conviction conviction-${t.conviction}">${t.conviction.toUpperCase()}</span>
+            <span class="thesis-conviction conviction-${t.conviction}">${t.conviction}</span>
           </div>
-          <div class="thesis-text">${t.thesis}</div>
-          ${t.catalysts ? `<div class="thesis-catalysts"><strong>Catalysts:</strong> ${t.catalysts}</div>` : ''}
-          ${t.risks ? `<div class="thesis-catalysts" style="margin-top: 5px;"><strong>Risks:</strong> ${t.risks}</div>` : ''}
+          <p class="thesis-text">${t.thesis}</p>
+          ${t.target ? `<p style="margin-top:10px;color:#8b949e;font-size:0.85rem;">Target: $${t.target}</p>` : ''}
         </div>
-      `).join('') || '<p style="color: #8b949e;">No theses yet</p>';
+      `).join('') || '<p style="color:#8b949e;">No theses yet.</p>';
       
-      // Transaction log
+      // Transactions
       document.getElementById('transactionLog').innerHTML = data.transactions.map(t => `
-        <div class="transaction ${t.type}">
-          <div class="transaction-date">${formatDate(t.date)}</div>
-          <div class="transaction-details">
-            <div class="transaction-action">${t.type.toUpperCase()} ${t.shares.toLocaleString()} ${t.symbol} @ $${t.price}</div>
-            ${t.reason ? `<div class="transaction-reason">${t.reason}</div>` : ''}
+        <div class="watchlist-item">
+          <div>
+            <div class="watchlist-ticker">${t.action.toUpperCase()} ${t.shares} ${t.symbol}</div>
+            <div class="watchlist-note">${formatDate(t.date)} @ $${t.price}${t.notes ? ' — ' + t.notes : ''}</div>
           </div>
+          <div class="${t.action === 'buy' ? 'positive' : 'negative'}">${formatCurrency(t.shares * t.price)}</div>
         </div>
-      `).join('') || '<p style="color: #8b949e;">No transactions yet</p>';
+      `).join('') || '<p style="color:#8b949e;">No transactions logged.</p>';
       
       // Watchlist
       document.getElementById('watchlistItems').innerHTML = data.watchlist.map(w => `
@@ -919,58 +1067,231 @@
             <div class="watchlist-ticker">${w.symbol}</div>
             <div class="watchlist-note">${w.notes || ''}</div>
           </div>
-          <div class="watchlist-price">
-            ${w.target ? `<div style="font-size: 0.8rem; color: #8b949e;">Target: $${w.target}</div>` : ''}
-            <button class="btn btn-sm btn-secondary" onclick="removeWatchlist('${w.symbol}')">×</button>
-          </div>
+          ${w.target ? `<div style="color:#8b949e;">Target: $${w.target}</div>` : ''}
         </div>
-      `).join('') || '<p style="color: #8b949e;">No items in watchlist</p>';
+      `).join('') || '<p style="color:#8b949e;">Watchlist empty.</p>';
       
       // Macro indicators
-      const trendIcons = { up: '📈', down: '📉', neutral: '➡️' };
       document.getElementById('macroGrid').innerHTML = data.macroIndicators.map(m => `
-        <div class="macro-item">
-          <div class="macro-label">${m.name}</div>
-          <div class="macro-value">${m.value} ${trendIcons[m.trend] || ''}</div>
-          <div class="macro-desc">${m.desc}</div>
+        <div class="macro-card">
+          <div class="macro-value">${m.value}</div>
+          <div class="macro-name">${m.name}</div>
+          <div class="macro-trend trend-${m.trend}">${m.trend === 'up' ? '↑' : m.trend === 'down' ? '↓' : '→'}</div>
         </div>
       `).join('');
       
-      // Macro resources
-      document.getElementById('macroResources').innerHTML = `
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px;">
-          <a href="https://fred.stlouisfed.org/series/M2SL" target="_blank" class="watchlist-item" style="text-decoration: none;">
-            <div><div class="watchlist-ticker">FRED M2</div><div class="watchlist-note">M2 Money Supply data</div></div>
-          </a>
-          <a href="https://fred.stlouisfed.org/series/RRPONTSYD" target="_blank" class="watchlist-item" style="text-decoration: none;">
-            <div><div class="watchlist-ticker">FRED RRP</div><div class="watchlist-note">Reverse Repo data</div></div>
-          </a>
-          <a href="https://fred.stlouisfed.org/series/WRESBAL" target="_blank" class="watchlist-item" style="text-decoration: none;">
-            <div><div class="watchlist-ticker">FRED WRESBAL</div><div class="watchlist-note">Bank Reserves</div></div>
-          </a>
-          <a href="https://www.tradingview.com/symbols/TVC-DXY/" target="_blank" class="watchlist-item" style="text-decoration: none;">
-            <div><div class="watchlist-ticker">DXY Chart</div><div class="watchlist-note">Dollar Index on TradingView</div></div>
-          </a>
-          <a href="https://www.ismworld.org/supply-management-news-and-reports/reports/ism-report-on-business/" target="_blank" class="watchlist-item" style="text-decoration: none;">
-            <div><div class="watchlist-ticker">ISM Reports</div><div class="watchlist-note">Manufacturing & Services PMI</div></div>
-          </a>
-        </div>
-      `;
-      
-      // All notes
-      document.getElementById('allNotes').innerHTML = data.notes.map(n => `
-        <div class="note ${n.author === 'pinky' ? 'pinky' : ''}">
-          <div class="note-header">
-            <span class="note-date">${formatDate(n.date)}</span>
+      // Notes
+      document.getElementById('notesList').innerHTML = data.notes.map(n => `
+        <div class="note-card">
+          <div class="note-meta">
             <span class="note-author">${n.author === 'pinky' ? '🧠 Pinky' : '👤 Chris'}</span>
+            <span>${formatDate(n.date)}</span>
           </div>
           <div class="note-text">${n.text}</div>
-          ${n.tags?.length ? `<div class="note-tags">${n.tags.map(t => `<span class="note-tag">${t}</span>`).join('')}</div>` : ''}
+          ${n.tags?.length ? `<div class="note-tags">${n.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>` : ''}
         </div>
-      `).join('') || '<p style="color: #8b949e;">No notes yet</p>';
+      `).join('') || '<p style="color:#8b949e;">No notes yet.</p>';
+      
+      // Update chart
+      if (valueChart) {
+        valueChart.data.labels = data.weeklyValues.map(v => formatDate(v.date));
+        valueChart.data.datasets[0].data = data.weeklyValues.map(v => v.value);
+        valueChart.update();
+      }
     }
     
-    // Tab switching
+    // ==================== ASK PINKY ====================
+    async function askPinky(type) {
+      const btn = document.getElementById(type === 'macro' ? 'askMacroBtn' : 'askQuickBtn');
+      const responseDiv = document.getElementById(type === 'macro' ? 'macroResponse' : 'quickResponse');
+      const responseText = document.getElementById(type === 'macro' ? 'macroResponseText' : 'quickResponseText');
+      
+      btn.disabled = true;
+      btn.innerHTML = '⏳ Analyzing...';
+      responseDiv.classList.add('active');
+      responseText.textContent = 'Sending request to Pinky via Telegram...';
+      
+      // Build context
+      const { stocksValue, cryptoValue, totalInvested, totalValue } = calculateTotals();
+      const topHoldings = [...data.holdings].sort((a,b) => (b.shares*b.price) - (a.shares*a.price)).slice(0,5).map(h => `${h.symbol}: $${(h.shares*h.price).toLocaleString()}`).join(', ');
+      
+      let message = '';
+      if (type === 'macro') {
+        message = `🔮 MACRO ANALYSIS REQUEST\n\nPortfolio: ${formatCurrency(totalValue)} (${formatCurrency(stocksValue)} stocks, ${formatCurrency(cryptoValue)} crypto, ${formatCurrency(data.cash)} cash)\nTop holdings: ${topHoldings}\n\nPlease analyze:\n1. Current macro conditions (VIX, DXY, yields)\n2. BTC liquidation levels and crypto sentiment\n3. Risk assessment for my portfolio\n4. Actionable recommendations`;
+      } else {
+        message = `🔮 QUICK ANALYSIS REQUEST\n\nPortfolio: ${formatCurrency(totalValue)}\nTop holdings: ${topHoldings}\nCash: ${formatCurrency(data.cash)}\n\nGive me a quick market pulse and any immediate concerns or opportunities for my positions.`;
+      }
+      
+      // Open Telegram with pre-filled message
+      const telegramUrl = `https://t.me/${TELEGRAM_BOT_USERNAME}?text=${encodeURIComponent(message)}`;
+      window.open(telegramUrl, '_blank');
+      
+      responseText.textContent = '✅ Request sent! Check Telegram for Pinky\'s analysis.\n\nNote: Pinky will respond in your Telegram chat. Future versions will show the response here directly.';
+      
+      btn.disabled = false;
+      btn.innerHTML = type === 'macro' ? '🔮 Analyze Market & Portfolio' : '🔮 Quick Analysis';
+    }
+    
+    // ==================== CRUD OPERATIONS ====================
+    async function saveHolding() {
+      const symbol = document.getElementById('holdingSymbol').value.toUpperCase();
+      const name = document.getElementById('holdingName').value;
+      const shares = parseFloat(document.getElementById('holdingShares').value);
+      const price = parseFloat(document.getElementById('holdingPrice').value);
+      const type = document.getElementById('holdingType').value;
+      
+      if (!symbol || !shares) return alert('Symbol and shares required');
+      
+      const existing = data.holdings.findIndex(h => h.symbol === symbol);
+      if (existing >= 0) {
+        data.holdings[existing] = { symbol, name, shares, price, type };
+      } else {
+        data.holdings.push({ symbol, name, shares, price, type });
+      }
+      
+      if (supabase) {
+        await supabase.from('holdings').upsert({ symbol, name, shares, type }, { onConflict: 'symbol' });
+        await supabase.from('prices').upsert({ symbol, price }, { onConflict: 'symbol' });
+      }
+      
+      saveLocal();
+      render();
+      closeModal('holdingModal');
+      clearForm('holding');
+    }
+    
+    async function deleteHolding(symbol) {
+      if (!confirm(`Delete ${symbol}?`)) return;
+      data.holdings = data.holdings.filter(h => h.symbol !== symbol);
+      if (supabase) await supabase.from('holdings').delete().eq('symbol', symbol);
+      saveLocal();
+      render();
+    }
+    
+    async function saveNote() {
+      const author = document.getElementById('noteAuthor').value;
+      const text = document.getElementById('noteText').value;
+      const tags = document.getElementById('noteTags').value.split(',').map(t => t.trim()).filter(t => t);
+      
+      if (!text) return alert('Note text required');
+      
+      const note = { date: new Date().toISOString().split('T')[0], author, text, tags };
+      data.notes.unshift(note);
+      
+      if (supabase) {
+        await supabase.from('notes').insert({ author, content: text, tags });
+      }
+      
+      saveLocal();
+      render();
+      closeModal('noteModal');
+      clearForm('note');
+    }
+    
+    async function saveTransaction() {
+      const symbol = document.getElementById('txSymbol').value.toUpperCase();
+      const action = document.getElementById('txAction').value;
+      const shares = parseFloat(document.getElementById('txShares').value);
+      const price = parseFloat(document.getElementById('txPrice').value);
+      const date = document.getElementById('txDate').value || new Date().toISOString().split('T')[0];
+      
+      if (!symbol || !shares || !price) return alert('All fields required');
+      
+      const tx = { symbol, action, shares, price, date };
+      data.transactions.unshift(tx);
+      
+      if (supabase) {
+        await supabase.from('transactions').insert({ symbol, action, shares, price, date });
+      }
+      
+      saveLocal();
+      render();
+      closeModal('transactionModal');
+      clearForm('transaction');
+    }
+    
+    async function saveWatchlist() {
+      const symbol = document.getElementById('watchSymbol').value.toUpperCase();
+      const notes = document.getElementById('watchNotes').value;
+      const target = parseFloat(document.getElementById('watchTarget').value) || null;
+      
+      if (!symbol) return alert('Symbol required');
+      
+      data.watchlist.push({ symbol, notes, target });
+      
+      if (supabase) {
+        await supabase.from('watchlist').insert({ symbol, notes, target_entry: target });
+      }
+      
+      saveLocal();
+      render();
+      closeModal('watchlistModal');
+      clearForm('watchlist');
+    }
+    
+    async function saveThesis() {
+      const symbol = document.getElementById('thesisSymbol').value.toUpperCase();
+      const thesis = document.getElementById('thesisText').value;
+      const conviction = document.getElementById('thesisConviction').value;
+      const target = parseFloat(document.getElementById('thesisTarget').value) || null;
+      
+      if (!symbol || !thesis) return alert('Symbol and thesis required');
+      
+      data.theses.push({ symbol, thesis, conviction, target });
+      
+      if (supabase) {
+        await supabase.from('theses').insert({ symbol, thesis, conviction, target_price: target });
+      }
+      
+      saveLocal();
+      render();
+      closeModal('thesisModal');
+      clearForm('thesis');
+    }
+    
+    // ==================== CONFIG ====================
+    function showConfigModal() {
+      document.getElementById('configUrl').value = supabaseUrl;
+      document.getElementById('configKey').value = supabaseKey;
+      openModal('configModal');
+    }
+    
+    function saveConfig() {
+      supabaseUrl = document.getElementById('configUrl').value.trim();
+      supabaseKey = document.getElementById('configKey').value.trim();
+      
+      localStorage.setItem('supabase_url', supabaseUrl);
+      localStorage.setItem('supabase_key', supabaseKey);
+      
+      initSupabase();
+      loadData();
+      closeModal('configModal');
+    }
+    
+    // ==================== UI HELPERS ====================
+    function openModal(id) {
+      document.getElementById(id).classList.add('active');
+    }
+    
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('active');
+    }
+    
+    function clearForm(type) {
+      if (type === 'holding') {
+        ['holdingSymbol', 'holdingName', 'holdingShares', 'holdingPrice'].forEach(id => document.getElementById(id).value = '');
+      } else if (type === 'note') {
+        ['noteText', 'noteTags'].forEach(id => document.getElementById(id).value = '');
+      } else if (type === 'transaction') {
+        ['txSymbol', 'txShares', 'txPrice'].forEach(id => document.getElementById(id).value = '');
+      } else if (type === 'watchlist') {
+        ['watchSymbol', 'watchNotes', 'watchTarget'].forEach(id => document.getElementById(id).value = '');
+      } else if (type === 'thesis') {
+        ['thesisSymbol', 'thesisText', 'thesisTarget'].forEach(id => document.getElementById(id).value = '');
+      }
+    }
+    
+    // Tab navigation
     document.querySelectorAll('.nav-tab').forEach(tab => {
       tab.addEventListener('click', () => {
         document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
@@ -979,69 +1300,6 @@
         document.getElementById(tab.dataset.tab).classList.add('active');
       });
     });
-    
-    // Modal functions
-    function openNoteModal() { document.getElementById('noteModal').classList.add('active'); }
-    function openTransactionModal() { document.getElementById('transactionModal').classList.add('active'); }
-    function openWatchlistModal() { document.getElementById('watchlistModal').classList.add('active'); }
-    function openThesisModal() { document.getElementById('thesisModal').classList.add('active'); }
-    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-    
-    // Form handlers
-    document.getElementById('noteForm').addEventListener('submit', e => {
-      e.preventDefault();
-      data.notes.unshift({
-        date: new Date().toISOString().split('T')[0],
-        author: document.getElementById('noteAuthor').value,
-        text: document.getElementById('noteText').value,
-        tags: document.getElementById('noteTags').value.split(',').map(t => t.trim()).filter(t => t)
-      });
-      save(); render(); closeModal('noteModal');
-      document.getElementById('noteForm').reset();
-    });
-    
-    document.getElementById('transactionForm').addEventListener('submit', e => {
-      e.preventDefault();
-      data.transactions.unshift({
-        date: new Date().toISOString().split('T')[0],
-        type: document.getElementById('txType').value,
-        symbol: document.getElementById('txSymbol').value.toUpperCase(),
-        shares: parseFloat(document.getElementById('txShares').value),
-        price: parseFloat(document.getElementById('txPrice').value),
-        reason: document.getElementById('txReason').value
-      });
-      save(); render(); closeModal('transactionModal');
-      document.getElementById('transactionForm').reset();
-    });
-    
-    document.getElementById('watchlistForm').addEventListener('submit', e => {
-      e.preventDefault();
-      data.watchlist.push({
-        symbol: document.getElementById('wlSymbol').value.toUpperCase(),
-        notes: document.getElementById('wlNotes').value,
-        target: parseFloat(document.getElementById('wlTarget').value) || null
-      });
-      save(); render(); closeModal('watchlistModal');
-      document.getElementById('watchlistForm').reset();
-    });
-    
-    document.getElementById('thesisForm').addEventListener('submit', e => {
-      e.preventDefault();
-      data.theses.push({
-        symbol: document.getElementById('thSymbol').value.toUpperCase(),
-        conviction: document.getElementById('thConviction').value,
-        thesis: document.getElementById('thThesis').value,
-        catalysts: document.getElementById('thCatalysts').value,
-        risks: document.getElementById('thRisks').value
-      });
-      save(); render(); closeModal('thesisModal');
-      document.getElementById('thesisForm').reset();
-    });
-    
-    function removeWatchlist(symbol) {
-      data.watchlist = data.watchlist.filter(w => w.symbol !== symbol);
-      save(); render();
-    }
     
     // Close modals on overlay click
     document.querySelectorAll('.modal-overlay').forEach(m => {
@@ -1052,7 +1310,8 @@
       if (e.key === 'Escape') document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
     });
     
-    render();
+    // Set default date for transactions
+    document.getElementById('txDate').value = new Date().toISOString().split('T')[0];
   </script>
 </body>
 </html>
