@@ -3,7 +3,7 @@
 
 -- Holdings
 INSERT INTO holdings (symbol, name, shares, type) VALUES
-  ('TSLA', 'Tesla', 185.31, 'stock'),
+  ('TSLA', 'Tesla', 215.31, 'stock'),
   ('CARR', 'Carrier Global', 193.24, 'stock'),
   ('ANET', 'Arista Networks', 77.07, 'stock'),
   ('NVDA', 'NVIDIA', 38.57, 'stock'),
@@ -18,7 +18,7 @@ ON CONFLICT (symbol) DO UPDATE SET shares = EXCLUDED.shares, name = EXCLUDED.nam
 
 -- Current prices (update these regularly)
 INSERT INTO prices (symbol, price) VALUES
-  ('TSLA', 398.09),
+  ('TSLA', 418),
   ('CARR', 68.94),
   ('ANET', 115.60),
   ('NVDA', 116.66),
@@ -55,6 +55,7 @@ ON CONFLICT (symbol) DO NOTHING;
 
 -- Recent transactions
 INSERT INTO transactions (symbol, action, shares, price, date, notes) VALUES
+  ('TSLA', 'buy', 30, 418, '2026-02-02', 'Good entry on dip'),
   ('SUI', 'sell', 2500, 4.20, '2026-01-30', 'Taking profits, crypto bearish'),
   ('IONQ', 'sell', 150, 42.50, '2026-01-28', 'Quantum hype overblown'),
   ('LMT', 'sell', 45, 485.00, '2026-01-25', 'Taking profits');
@@ -78,5 +79,5 @@ INSERT INTO macro_indicators (id, name, value, trend) VALUES
 ON CONFLICT (id) DO UPDATE SET value = EXCLUDED.value, trend = EXCLUDED.trend, updated_at = NOW();
 
 -- Cash setting
-INSERT INTO settings (key, value) VALUES ('cash', '45000')
+INSERT INTO settings (key, value) VALUES ('cash', '32460')
 ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
