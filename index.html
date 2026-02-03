@@ -532,21 +532,37 @@
         
         <div class="card">
           <div class="card-header">
-            <span class="card-title">🌍 Market Indicators</span>
+            <span class="card-title">💧 I. Liquidity & Money</span>
+            <span style="font-size:0.75rem;color:#8b949e;">The oxygen — no oxygen, nothing lives</span>
+          </div>
+          <div class="grid-4" id="liquidityGrid"></div>
+          <div style="margin-top:15px;display:flex;gap:10px;flex-wrap:wrap;">
+            <a href="https://fred.stlouisfed.org/series/WM2NS" target="_blank" class="btn btn-secondary">📈 US M2</a>
+            <a href="https://fred.stlouisfed.org/series/WALCL" target="_blank" class="btn btn-secondary">🏦 Fed Balance Sheet</a>
+            <a href="https://fred.stlouisfed.org/series/WTREGEN" target="_blank" class="btn btn-secondary">💰 Treasury TGA</a>
+            <a href="https://fred.stlouisfed.org/series/RRPONTSYD" target="_blank" class="btn btn-secondary">🔄 Reverse Repo</a>
+            <a href="https://www.longtermtrends.net/m2-money-supply-vs-inflation/" target="_blank" class="btn btn-secondary">🌍 Global M2</a>
+          </div>
+        </div>
+        
+        <div class="card" style="margin-top: 20px;">
+          <div class="card-header">
+            <span class="card-title">📊 II. Risk Sentiment</span>
           </div>
           <div class="grid-4" id="macroGrid"></div>
         </div>
         
         <div class="card" style="margin-top: 20px;">
           <div class="card-header">
-            <span class="card-title">📊 Quick Links</span>
+            <span class="card-title">🔗 Quick Links</span>
           </div>
           <div style="display: flex; gap: 10px; flex-wrap: wrap;">
             <a href="https://www.coinglass.com/LiquidationData" target="_blank" class="btn btn-secondary">📉 BTC Liquidations</a>
             <a href="https://edition.cnn.com/markets/fear-and-greed" target="_blank" class="btn btn-secondary">😱 Fear & Greed</a>
-            <a href="https://fred.stlouisfed.org/series/M2SL" target="_blank" class="btn btn-secondary">💵 M2 Money Supply</a>
             <a href="https://www.tradingview.com/symbols/TVC-DXY/" target="_blank" class="btn btn-secondary">💲 DXY Index</a>
             <a href="https://www.tradingview.com/symbols/TVC-VIX/" target="_blank" class="btn btn-secondary">📊 VIX</a>
+            <a href="https://www.tradingview.com/symbols/TVC-US10Y/" target="_blank" class="btn btn-secondary">📈 10Y Yield</a>
+            <a href="https://fred.stlouisfed.org/series/BAMLH0A0HYM2" target="_blank" class="btn btn-secondary">⚠️ HY Spreads</a>
           </div>
         </div>
       </div>
@@ -784,15 +800,25 @@
         { date: '2026-02-02', author: 'pinky', text: 'Crypto in bear mode — BTC dominance rising. Keeping core BTC + SOL positions. Patience over FOMO.', tags: ['crypto', 'macro'] },
         { date: '2026-02-01', author: 'chris', text: 'Want long term holds that can realistically 3X. Looking for undervalued plays.', tags: ['strategy'] },
       ],
+      liquidityIndicators: [
+        { id: 'global-m2', name: 'Global M2 YoY', value: '+3.8%', trend: 'up' },
+        { id: 'us-m2', name: 'US M2 YoY', value: '+3.2%', trend: 'up' },
+        { id: 'fed-bs', name: 'Fed Balance Sheet', value: '$6.81T', trend: 'down' },
+        { id: 'fed-net-liq', name: 'Fed Net Liquidity', value: '$5.92T', trend: 'neutral' },
+        { id: 'tga', name: 'Treasury TGA', value: '$722B', trend: 'up' },
+        { id: 'rrp', name: 'Reverse Repo', value: '$168B', trend: 'down' },
+        { id: 'cb-combined', name: 'G4 Central Banks', value: '$28.1T', trend: 'neutral' },
+        { id: 'm2-spx-lag', name: 'M2→SPX Signal', value: 'Bullish', trend: 'up' },
+      ],
       macroIndicators: [
         { id: 'vix', name: 'VIX', value: '18.2', trend: 'up' },
         { id: 'dxy', name: 'DXY', value: '108.4', trend: 'up' },
         { id: 'btc-dom', name: 'BTC Dominance', value: '58.2%', trend: 'up' },
         { id: '10y', name: '10Y Treasury', value: '4.52%', trend: 'up' },
         { id: 'fear-greed', name: 'Fear & Greed', value: '44', trend: 'down' },
-        { id: 'm2', name: 'M2 YoY', value: '+3.2%', trend: 'up' },
         { id: 'spx', name: 'S&P 500', value: '6,040', trend: 'neutral' },
-        { id: 'btc-liq', name: 'BTC Liq Levels', value: '$92k / $104k', trend: 'neutral' },
+        { id: 'btc-liq', name: 'BTC Liq Levels', value: '$92k/$104k', trend: 'neutral' },
+        { id: 'hy-spread', name: 'HY Spreads', value: '2.89%', trend: 'neutral' },
       ],
       lastUpdated: new Date().toISOString()
     };
@@ -1201,6 +1227,15 @@
           ${w.target ? `<div style="color:#8b949e;">Target: $${w.target}</div>` : ''}
         </div>
       `).join('') || '<p style="color:#8b949e;">Watchlist empty.</p>';
+      
+      // Liquidity indicators
+      document.getElementById('liquidityGrid').innerHTML = (data.liquidityIndicators || []).map(m => `
+        <div class="macro-card">
+          <div class="macro-value">${m.value}</div>
+          <div class="macro-name">${m.name}</div>
+          <div class="macro-trend trend-${m.trend}">${m.trend === 'up' ? '↑ expanding' : m.trend === 'down' ? '↓ contracting' : '→ stable'}</div>
+        </div>
+      `).join('');
       
       // Macro indicators
       document.getElementById('macroGrid').innerHTML = data.macroIndicators.map(m => `
