@@ -577,7 +577,22 @@
         
         <div class="card" style="margin-top: 20px;">
           <div class="card-header">
-            <span class="card-title">🎭 IV. Risk Sentiment</span>
+            <span class="card-title">🔥 IV. Inflation</span>
+            <span style="font-size:0.75rem;color:#8b949e;">Direction matters more than level</span>
+          </div>
+          <div class="grid-4" id="inflationGrid"></div>
+          <div style="margin-top:15px;display:flex;gap:10px;flex-wrap:wrap;">
+            <a href="https://fred.stlouisfed.org/series/CPIAUCSL" target="_blank" class="btn btn-secondary">📊 CPI</a>
+            <a href="https://fred.stlouisfed.org/series/PCEPI" target="_blank" class="btn btn-secondary">🎯 PCE</a>
+            <a href="https://fred.stlouisfed.org/series/T5YIFR" target="_blank" class="btn btn-secondary">📈 5Y5Y Breakeven</a>
+            <a href="https://www.tradingview.com/symbols/TVC-DXY/" target="_blank" class="btn btn-secondary">🛢️ Commodities</a>
+            <a href="https://tradingeconomics.com/united-states/inflation-cpi" target="_blank" class="btn btn-secondary">🌍 Trading Economics</a>
+          </div>
+        </div>
+        
+        <div class="card" style="margin-top: 20px;">
+          <div class="card-header">
+            <span class="card-title">🎭 V. Risk Sentiment</span>
           </div>
           <div class="grid-4" id="macroGrid"></div>
         </div>
@@ -859,6 +874,16 @@
         { id: 'loan-delinq', name: 'Loan Delinquency', value: '1.54%', trend: 'up' },
         { id: 'credit-cond', name: 'Credit Conditions', value: 'Tight', trend: 'down' },
         { id: 'hyg-lqd', name: 'HYG/LQD Ratio', value: '0.72', trend: 'neutral' },
+      ],
+      inflationIndicators: [
+        { id: 'cpi-yoy', name: 'CPI YoY', value: '2.9%', trend: 'down' },
+        { id: 'cpi-mom', name: 'CPI MoM', value: '0.4%', trend: 'up' },
+        { id: 'core-cpi', name: 'Core CPI YoY', value: '3.2%', trend: 'down' },
+        { id: 'pce-yoy', name: 'PCE YoY', value: '2.6%', trend: 'down' },
+        { id: 'core-pce', name: 'Core PCE YoY', value: '2.8%', trend: 'down' },
+        { id: '5y5y', name: '5Y5Y Breakeven', value: '2.35%', trend: 'neutral' },
+        { id: 'oil', name: 'Oil (WTI)', value: '$73', trend: 'down' },
+        { id: 'commodities', name: 'CRB Index', value: '275', trend: 'neutral' },
       ],
       macroIndicators: [
         { id: 'vix', name: 'VIX', value: '18.2', trend: 'up' },
@@ -1302,6 +1327,15 @@
           <div class="macro-value">${m.value}</div>
           <div class="macro-name">${m.name}</div>
           <div class="macro-trend trend-${m.trend}">${m.trend === 'up' ? '↑ widening' : m.trend === 'down' ? '↓ tightening' : '→ stable'}</div>
+        </div>
+      `).join('');
+      
+      // Inflation indicators
+      document.getElementById('inflationGrid').innerHTML = (data.inflationIndicators || []).map(m => `
+        <div class="macro-card">
+          <div class="macro-value">${m.value}</div>
+          <div class="macro-name">${m.name}</div>
+          <div class="macro-trend trend-${m.trend}">${m.trend === 'up' ? '↑ rising' : m.trend === 'down' ? '↓ cooling' : '→ stable'}</div>
         </div>
       `).join('');
       
