@@ -1084,7 +1084,7 @@
         <tr>
           <td class="ticker">${h.symbol}</td>
           <td>${h.name}</td>
-          <td>${h.shares.toFixed(4)}</td>
+          <td>${h.shares.toFixed(2)}</td>
           <td>$${h.price.toLocaleString()}</td>
           <td>${formatCurrency(h.shares * h.price)}</td>
           <td><button class="btn btn-secondary" onclick="deleteHolding('${h.symbol}')">×</button></td>
@@ -1095,7 +1095,7 @@
         <tr>
           <td class="ticker">${h.symbol}</td>
           <td>${h.name}</td>
-          <td>${h.shares.toFixed(4)}</td>
+          <td>${h.shares.toFixed(2)}</td>
           <td>$${h.price.toLocaleString()}</td>
           <td>${formatCurrency(h.shares * h.price)}</td>
           <td><button class="btn btn-secondary" onclick="deleteHolding('${h.symbol}')">×</button></td>
