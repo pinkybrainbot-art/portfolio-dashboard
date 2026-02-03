@@ -383,10 +383,6 @@
         <span class="summary-value" id="totalValue">$0</span>
       </div>
       <div class="summary-item">
-        <span class="summary-label">Cash:</span>
-        <span class="summary-value" id="cashValue">$0</span>
-      </div>
-      <div class="summary-item">
         <span class="summary-label">Positions:</span>
         <span class="summary-value" id="positionCount">0</span>
       </div>
@@ -407,14 +403,6 @@
           <div class="stat-card">
             <div class="stat-value" id="statCrypto">$0</div>
             <div class="stat-label">Crypto</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value" id="statCash">$0</div>
-            <div class="stat-label">Cash</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value" id="statAllocation">0%</div>
-            <div class="stat-label">Invested</div>
           </div>
         </div>
         
@@ -1061,9 +1049,8 @@
     function calculateTotals() {
       const stocksValue = data.holdings.filter(h => h.type === 'stock').reduce((sum, h) => sum + h.shares * h.price, 0);
       const cryptoValue = data.holdings.filter(h => h.type === 'crypto').reduce((sum, h) => sum + h.shares * h.price, 0);
-      const totalInvested = stocksValue + cryptoValue;
-      const totalValue = totalInvested + data.cash;
-      return { stocksValue, cryptoValue, totalInvested, totalValue };
+      const totalValue = stocksValue + cryptoValue;
+      return { stocksValue, cryptoValue, totalValue };
     }
     
     // ==================== CHART ====================
@@ -1107,20 +1094,16 @@
     
     // ==================== RENDER ====================
     function render() {
-      const { stocksValue, cryptoValue, totalInvested, totalValue } = calculateTotals();
-      const investedPercent = totalValue > 0 ? Math.round((totalInvested / totalValue) * 100) : 0;
+      const { stocksValue, cryptoValue, totalValue } = calculateTotals();
       
       // Summary bar
       document.getElementById('totalValue').textContent = formatCurrency(totalValue);
-      document.getElementById('cashValue').textContent = formatCurrency(data.cash);
       document.getElementById('positionCount').textContent = data.holdings.length;
       document.getElementById('lastUpdated').textContent = formatDate(data.lastUpdated);
       
       // Overview stats
       document.getElementById('statStocks').textContent = formatCurrency(stocksValue);
       document.getElementById('statCrypto').textContent = formatCurrency(cryptoValue);
-      document.getElementById('statCash').textContent = formatCurrency(data.cash);
-      document.getElementById('statAllocation').textContent = investedPercent + '%';
       
       // Top holdings
       const sorted = [...data.holdings].sort((a, b) => (b.shares * b.price) - (a.shares * a.price)).slice(0, 6);
@@ -1260,14 +1243,14 @@
       responseText.textContent = 'Sending request to Pinky via Telegram...';
       
       // Build context
-      const { stocksValue, cryptoValue, totalInvested, totalValue } = calculateTotals();
+      const { stocksValue, cryptoValue, totalValue } = calculateTotals();
       const topHoldings = [...data.holdings].sort((a,b) => (b.shares*b.price) - (a.shares*a.price)).slice(0,5).map(h => `${h.symbol}: $${(h.shares*h.price).toLocaleString()}`).join(', ');
       
       let message = '';
       if (type === 'macro') {
-        message = `🔮 MACRO ANALYSIS REQUEST\n\nPortfolio: ${formatCurrency(totalValue)} (${formatCurrency(stocksValue)} stocks, ${formatCurrency(cryptoValue)} crypto, ${formatCurrency(data.cash)} cash)\nTop holdings: ${topHoldings}\n\nPlease analyze:\n1. Current macro conditions (VIX, DXY, yields)\n2. BTC liquidation levels and crypto sentiment\n3. Risk assessment for my portfolio\n4. Actionable recommendations`;
+        message = `🔮 MACRO ANALYSIS REQUEST\n\nPortfolio: ${formatCurrency(totalValue)} (${formatCurrency(stocksValue)} stocks, ${formatCurrency(cryptoValue)} crypto)\nTop holdings: ${topHoldings}\n\nPlease analyze:\n1. Current macro conditions (VIX, DXY, yields)\n2. BTC liquidation levels and crypto sentiment\n3. Risk assessment for my portfolio\n4. Actionable recommendations`;
       } else {
-        message = `🔮 QUICK ANALYSIS REQUEST\n\nPortfolio: ${formatCurrency(totalValue)}\nTop holdings: ${topHoldings}\nCash: ${formatCurrency(data.cash)}\n\nGive me a quick market pulse and any immediate concerns or opportunities for my positions.`;
+        message = `🔮 QUICK ANALYSIS REQUEST\n\nPortfolio: ${formatCurrency(totalValue)}\nTop holdings: ${topHoldings}\n\nGive me a quick market pulse and any immediate concerns or opportunities for my positions.`;
       }
       
       // Open Telegram with pre-filled message
