@@ -1373,7 +1373,7 @@
       if (!symbol || !shares || !price) return alert('All fields required');
       
       if (editingTransactionIdx !== null) {
-        // Update existing
+        // Update existing transaction (don't modify holdings for edits)
         const oldTx = data.transactions[editingTransactionIdx];
         const tx = { ...oldTx, symbol, action, shares, price, date };
         data.transactions[editingTransactionIdx] = tx;
@@ -1383,10 +1383,46 @@
         }
         editingTransactionIdx = null;
       } else {
-        // Create new
+        // Create new transaction AND update holdings
         const tx = { symbol, action, shares, price, date };
         data.transactions.unshift(tx);
         
+        // Update holdings based on transaction
+        const existingHolding = data.holdings.find(h => h.symbol === symbol);
+        if (action === 'buy') {
+          if (existingHolding) {
+            existingHolding.shares += shares;
+            existingHolding.price = price; // Update to latest price
+          } else {
+            // Create new holding - prompt for name and type
+            const name = prompt(`Enter name for ${symbol}:`, symbol);
+            const type = prompt(`Type for ${symbol}? (stock/crypto):`, 'stock');
+            if (name && type) {
+              data.holdings.push({ symbol, name, shares, price, type: type.toLowerCase() });
+              if (supabaseClient) {
+                await supabaseClient.from('holdings').insert({ symbol, name, shares, type: type.toLowerCase() });
+                await supabaseClient.from('prices').upsert({ symbol, price }, { onConflict: 'symbol' });
+              }
+            }
+          }
+        } else if (action === 'sell' && existingHolding) {
+          existingHolding.shares -= shares;
+          if (existingHolding.shares <= 0) {
+            // Remove holding if all shares sold
+            data.holdings = data.holdings.filter(h => h.symbol !== symbol);
+            if (supabaseClient) {
+              await supabaseClient.from('holdings').delete().eq('symbol', symbol);
+            }
+          }
+        }
+        
+        // Update Supabase holdings
+        if (supabaseClient && existingHolding && existingHolding.shares > 0) {
+          await supabaseClient.from('holdings').update({ shares: existingHolding.shares }).eq('symbol', symbol);
+          await supabaseClient.from('prices').upsert({ symbol, price }, { onConflict: 'symbol' });
+        }
+        
+        // Insert transaction
         if (supabaseClient) {
           const { data: inserted } = await supabaseClient.from('transactions').insert({ symbol, action, shares, price, date }).select();
           if (inserted?.[0]) tx.id = inserted[0].id;
