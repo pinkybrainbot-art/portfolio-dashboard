@@ -1241,54 +1241,121 @@
       localStorage.setItem('portfolio-dashboard-v3', JSON.stringify(data));
     }
     
-    // ==================== LIVE PRICE UPDATES ====================
+    // ==================== LIVE DATA UPDATES ====================
+    async function fetchYahooQuote(symbol) {
+      try {
+        const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=5d`;
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+        const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(5000) });
+        if (res.ok) {
+          const json = await res.json();
+          return json?.chart?.result?.[0]?.meta?.regularMarketPrice || null;
+        }
+      } catch (e) { }
+      return null;
+    }
+    
+    function updateIndicator(arr, id, value, trend) {
+      const item = arr?.find(i => i.id === id);
+      if (item && value !== null) {
+        item.value = value;
+        if (trend) item.trend = trend;
+      }
+    }
+    
     async function fetchLivePrices() {
-      console.log('📡 Fetching live prices...');
+      console.log('📡 Fetching live data...');
       
       try {
-        // Fetch crypto prices from CoinGecko (free, no API key needed)
+        // === PORTFOLIO PRICES ===
+        // Crypto from CoinGecko
         const cryptoIds = { 'BTC': 'bitcoin', 'SOL': 'solana', 'ETH': 'ethereum' };
-        const cryptoSymbols = data.holdings.filter(h => h.type === 'crypto').map(h => h.symbol);
-        const coinIds = cryptoSymbols.map(s => cryptoIds[s]).filter(Boolean).join(',');
+        const cryptoRes = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,solana,ethereum&vs_currencies=usd&include_market_cap=true');
+        if (cryptoRes.ok) {
+          const cryptoData = await cryptoRes.json();
+          data.holdings.forEach(h => {
+            const coinId = cryptoIds[h.symbol];
+            if (coinId && cryptoData[coinId]?.usd) {
+              h.price = cryptoData[coinId].usd;
+              console.log(`✅ ${h.symbol}: $${h.price}`);
+            }
+          });
+        }
         
-        if (coinIds) {
-          const cryptoRes = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coinIds}&vs_currencies=usd`);
-          if (cryptoRes.ok) {
-            const cryptoData = await cryptoRes.json();
-            data.holdings.forEach(h => {
-              const coinId = cryptoIds[h.symbol];
-              if (coinId && cryptoData[coinId]?.usd) {
-                h.price = cryptoData[coinId].usd;
-                console.log(`✅ ${h.symbol}: $${h.price}`);
-              }
-            });
+        // BTC dominance from CoinGecko
+        const globalRes = await fetch('https://api.coingecko.com/api/v3/global');
+        if (globalRes.ok) {
+          const globalData = await globalRes.json();
+          const btcDom = globalData?.data?.market_cap_percentage?.btc;
+          if (btcDom) {
+            updateIndicator(data.globalIndicators, 'btc-dom', btcDom.toFixed(1) + '%', btcDom > 55 ? 'up' : 'down');
           }
         }
         
-        // Fetch stock prices from Yahoo Finance via AllOrigins proxy
+        // Crypto Fear & Greed
+        const fgRes = await fetch('https://api.alternative.me/fng/?limit=1');
+        if (fgRes.ok) {
+          const fgData = await fgRes.json();
+          const fgValue = fgData?.data?.[0]?.value;
+          if (fgValue) {
+            const trend = fgValue < 25 ? 'down' : fgValue > 60 ? 'up' : 'neutral';
+            updateIndicator(data.sentimentIndicators, 'fear-greed', fgValue, trend);
+          }
+        }
+        
+        // Stock prices from Yahoo
         const stockSymbols = data.holdings.filter(h => h.type === 'stock').map(h => h.symbol);
         for (const symbol of stockSymbols) {
-          try {
-            const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1d`;
-            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-            const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(5000) });
-            if (res.ok) {
-              const json = await res.json();
-              const price = json?.chart?.result?.[0]?.meta?.regularMarketPrice;
-              if (price) {
-                const holding = data.holdings.find(h => h.symbol === symbol);
-                if (holding) {
-                  holding.price = price;
-                  console.log(`✅ ${symbol}: $${price}`);
-                }
-              }
+          const price = await fetchYahooQuote(symbol);
+          if (price) {
+            const holding = data.holdings.find(h => h.symbol === symbol);
+            if (holding) {
+              holding.price = price;
+              console.log(`✅ ${symbol}: $${price}`);
             }
-          } catch (e) {
-            console.log(`⚠️ Could not fetch ${symbol}:`, e.message);
           }
         }
         
-        // Update Supabase with new prices if connected
+        // === MACRO DATA FROM YAHOO ===
+        const macroSymbols = {
+          '^VIX': { arr: 'volIndicators', id: 'vix', format: v => v.toFixed(1) },
+          '^VIX9D': { arr: 'volIndicators', id: 'vix9d', format: v => v.toFixed(1) },
+          '^VVIX': { arr: 'volIndicators', id: 'vvix', format: v => v.toFixed(0) },
+          'DX-Y.NYB': { arr: 'globalIndicators', id: 'dxy', format: v => v.toFixed(1) },
+          '^TNX': { arr: 'ratesIndicators', id: '10y', format: v => v.toFixed(2) + '%' },
+          '^IRX': { arr: 'ratesIndicators', id: '2y', format: v => v.toFixed(2) + '%' },
+          '^GSPC': { arr: 'macroIndicators', id: 'spx', format: v => v.toLocaleString('en-US', {maximumFractionDigits: 0}) },
+          'CL=F': { arr: 'inflationIndicators', id: 'oil', format: v => '$' + v.toFixed(0) },
+          'GC=F': { arr: 'globalIndicators', id: 'gold', format: v => '$' + v.toFixed(0) },
+          'USDCNY=X': { arr: 'globalIndicators', id: 'usd-cny', format: v => v.toFixed(2) },
+          'HYG': { arr: 'creditIndicators', id: 'hyg', format: v => v.toFixed(2) },
+          'LQD': { arr: 'creditIndicators', id: 'lqd', format: v => v.toFixed(2) },
+        };
+        
+        console.log('📊 Fetching macro indicators...');
+        for (const [symbol, config] of Object.entries(macroSymbols)) {
+          const price = await fetchYahooQuote(symbol);
+          if (price && data[config.arr]) {
+            const formatted = config.format(price);
+            updateIndicator(data[config.arr], config.id, formatted);
+            console.log(`✅ ${symbol}: ${formatted}`);
+          }
+        }
+        
+        // Calculate VIX term structure
+        const vix = data.volIndicators?.find(i => i.id === 'vix');
+        const vix9d = data.volIndicators?.find(i => i.id === 'vix9d');
+        if (vix && vix9d) {
+          const vixVal = parseFloat(vix.value);
+          const vix9dVal = parseFloat(vix9d.value);
+          const termStruct = data.volIndicators.find(i => i.id === 'vix-term');
+          if (termStruct && !isNaN(vixVal) && !isNaN(vix9dVal)) {
+            termStruct.value = vix9dVal < vixVal ? 'Contango' : 'Backwardation';
+            termStruct.trend = vix9dVal < vixVal ? 'up' : 'down';
+          }
+        }
+        
+        // Update Supabase with new prices
         if (supabaseClient) {
           for (const h of data.holdings) {
             await supabaseClient.from('prices').upsert({ symbol: h.symbol, price: h.price, updated_at: new Date().toISOString() }, { onConflict: 'symbol' });
@@ -1299,10 +1366,10 @@
         data.lastUpdated = new Date().toISOString();
         saveLocal();
         render();
-        console.log('✅ Live prices updated!');
+        console.log('✅ Live data updated!');
         
       } catch (e) {
-        console.error('❌ Price fetch error:', e);
+        console.error('❌ Data fetch error:', e);
       }
     }
     
