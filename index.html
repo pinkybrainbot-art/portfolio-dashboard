@@ -667,7 +667,22 @@
         
         <div class="card" style="margin-top: 20px;">
           <div class="card-header">
-            <span class="card-title">🎭 X. Risk Sentiment</span>
+            <span class="card-title">🌍 X. Global Macro</span>
+            <span style="font-size:0.75rem;color:#8b949e;">Capital doesn't respect borders</span>
+          </div>
+          <div class="grid-4" id="globalGrid"></div>
+          <div style="margin-top:15px;display:flex;gap:10px;flex-wrap:wrap;">
+            <a href="https://www.tradingview.com/symbols/TVC-DXY/" target="_blank" class="btn btn-secondary">💲 DXY</a>
+            <a href="https://www.tradingview.com/symbols/AMEX-EEM/" target="_blank" class="btn btn-secondary">🌏 EM Equities</a>
+            <a href="https://tradingeconomics.com/china/total-credit-growth" target="_blank" class="btn btn-secondary">🇨🇳 China Credit</a>
+            <a href="https://www.tradingview.com/symbols/INDEX-BDI/" target="_blank" class="btn btn-secondary">🚢 Baltic Dry</a>
+            <a href="https://tradingeconomics.com/world-trade-volume" target="_blank" class="btn btn-secondary">📦 World Trade</a>
+          </div>
+        </div>
+        
+        <div class="card" style="margin-top: 20px;">
+          <div class="card-header">
+            <span class="card-title">🎭 XI. Risk Sentiment</span>
           </div>
           <div class="grid-4" id="macroGrid"></div>
         </div>
@@ -1009,6 +1024,16 @@
         { id: 'skew', name: 'SKEW Index', value: '142', trend: 'neutral' },
         { id: 'gex', name: 'Dealer GEX', value: '+$2.1B', trend: 'up' },
         { id: 'dix', name: 'DIX (Dark Pool)', value: '44.2%', trend: 'neutral' },
+      ],
+      globalIndicators: [
+        { id: 'dxy', name: 'DXY (USD Index)', value: '108.4', trend: 'up' },
+        { id: 'dxy-trend', name: 'DXY Trend', value: 'Strong', trend: 'down' },
+        { id: 'em-fx', name: 'EM FX Basket', value: 'Weak', trend: 'down' },
+        { id: 'usd-cny', name: 'USD/CNY', value: '7.29', trend: 'up' },
+        { id: 'china-credit', name: 'China Credit Impulse', value: '+2.1%', trend: 'up' },
+        { id: 'china-pmi', name: 'China PMI', value: '50.1', trend: 'neutral' },
+        { id: 'baltic-dry', name: 'Baltic Dry Index', value: '1,024', trend: 'down' },
+        { id: 'world-trade', name: 'World Trade Vol', value: '+1.8%', trend: 'neutral' },
       ],
       macroIndicators: [
         { id: 'vix', name: 'VIX', value: '18.2', trend: 'up' },
@@ -1506,6 +1531,15 @@
           <div class="macro-value">${m.value}</div>
           <div class="macro-name">${m.name}</div>
           <div class="macro-trend trend-${m.trend}">${m.trend === 'up' ? '↑ calm' : m.trend === 'down' ? '↓ fear' : '→ neutral'}</div>
+        </div>
+      `).join('');
+      
+      // Global Macro indicators
+      document.getElementById('globalGrid').innerHTML = (data.globalIndicators || []).map(m => `
+        <div class="macro-card">
+          <div class="macro-value">${m.value}</div>
+          <div class="macro-name">${m.name}</div>
+          <div class="macro-trend trend-${m.trend}">${m.trend === 'up' ? '↑ risk-on' : m.trend === 'down' ? '↓ risk-off' : '→ neutral'}</div>
         </div>
       `).join('');
       
