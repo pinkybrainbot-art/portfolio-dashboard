@@ -562,7 +562,22 @@
         
         <div class="card" style="margin-top: 20px;">
           <div class="card-header">
-            <span class="card-title">🎭 III. Risk Sentiment</span>
+            <span class="card-title">💳 III. Credit Markets</span>
+            <span style="font-size:0.75rem;color:#8b949e;">Smarter than equities, always</span>
+          </div>
+          <div class="grid-4" id="creditGrid"></div>
+          <div style="margin-top:15px;display:flex;gap:10px;flex-wrap:wrap;">
+            <a href="https://fred.stlouisfed.org/series/BAMLH0A0HYM2" target="_blank" class="btn btn-secondary">⚠️ HY Spreads</a>
+            <a href="https://fred.stlouisfed.org/series/BAMLC0A0CM" target="_blank" class="btn btn-secondary">📊 IG Spreads</a>
+            <a href="https://www.tradingview.com/symbols/TVC-HYG/" target="_blank" class="btn btn-secondary">📉 HYG ETF</a>
+            <a href="https://fred.stlouisfed.org/series/DRCCLACBS" target="_blank" class="btn btn-secondary">🏦 Loan Delinquency</a>
+            <a href="https://www.tradingview.com/symbols/AMEX-LQD/" target="_blank" class="btn btn-secondary">📈 LQD ETF</a>
+          </div>
+        </div>
+        
+        <div class="card" style="margin-top: 20px;">
+          <div class="card-header">
+            <span class="card-title">🎭 IV. Risk Sentiment</span>
           </div>
           <div class="grid-4" id="macroGrid"></div>
         </div>
@@ -834,6 +849,16 @@
         { id: 'fed-terminal', name: 'Terminal Rate Exp', value: '3.75%', trend: 'down' },
         { id: 'cuts-2026', name: 'Cuts Priced 2026', value: '2-3 cuts', trend: 'neutral' },
         { id: 'bei', name: 'Breakeven Inflation', value: '2.40%', trend: 'neutral' },
+      ],
+      creditIndicators: [
+        { id: 'hy-spread', name: 'HY Spread (OAS)', value: '289bp', trend: 'neutral' },
+        { id: 'ig-spread', name: 'IG Spread (OAS)', value: '87bp', trend: 'neutral' },
+        { id: 'hy-vs-avg', name: 'HY vs 10Y Avg', value: 'Below', trend: 'up' },
+        { id: 'cdx-hy', name: 'CDX HY Index', value: '342', trend: 'neutral' },
+        { id: 'cdx-ig', name: 'CDX IG Index', value: '52', trend: 'neutral' },
+        { id: 'loan-delinq', name: 'Loan Delinquency', value: '1.54%', trend: 'up' },
+        { id: 'credit-cond', name: 'Credit Conditions', value: 'Tight', trend: 'down' },
+        { id: 'hyg-lqd', name: 'HYG/LQD Ratio', value: '0.72', trend: 'neutral' },
       ],
       macroIndicators: [
         { id: 'vix', name: 'VIX', value: '18.2', trend: 'up' },
@@ -1268,6 +1293,15 @@
           <div class="macro-value">${m.value}</div>
           <div class="macro-name">${m.name}</div>
           <div class="macro-trend trend-${m.trend}">${m.trend === 'up' ? '↑ rising' : m.trend === 'down' ? '↓ falling' : '→ stable'}</div>
+        </div>
+      `).join('');
+      
+      // Credit indicators
+      document.getElementById('creditGrid').innerHTML = (data.creditIndicators || []).map(m => `
+        <div class="macro-card">
+          <div class="macro-value">${m.value}</div>
+          <div class="macro-name">${m.name}</div>
+          <div class="macro-trend trend-${m.trend}">${m.trend === 'up' ? '↑ widening' : m.trend === 'down' ? '↓ tightening' : '→ stable'}</div>
         </div>
       `).join('');
       
