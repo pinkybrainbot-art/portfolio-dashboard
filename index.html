@@ -682,9 +682,17 @@
         
         <div class="card" style="margin-top: 20px;">
           <div class="card-header">
-            <span class="card-title">🎭 XI. Risk Sentiment</span>
+            <span class="card-title">🎭 XI. Sentiment & Positioning</span>
+            <span style="font-size:0.75rem;color:#8b949e;">Crowds are usually wrong at extremes</span>
           </div>
-          <div class="grid-4" id="macroGrid"></div>
+          <div class="grid-4" id="sentimentGrid"></div>
+          <div style="margin-top:15px;display:flex;gap:10px;flex-wrap:wrap;">
+            <a href="https://www.aaii.com/sentimentsurvey" target="_blank" class="btn btn-secondary">📊 AAII Survey</a>
+            <a href="https://www.naaim.org/programs/naaim-exposure-index/" target="_blank" class="btn btn-secondary">📈 NAAIM Index</a>
+            <a href="https://www.ici.org/research/stats/flows" target="_blank" class="btn btn-secondary">💸 Fund Flows</a>
+            <a href="https://www.finra.org/investors/learn-to-invest/advanced-investing/margin-statistics" target="_blank" class="btn btn-secondary">📉 Margin Debt</a>
+            <a href="https://edition.cnn.com/markets/fear-and-greed" target="_blank" class="btn btn-secondary">😱 Fear & Greed</a>
+          </div>
         </div>
         
         <div class="card" style="margin-top: 20px;">
@@ -1034,6 +1042,16 @@
         { id: 'china-pmi', name: 'China PMI', value: '50.1', trend: 'neutral' },
         { id: 'baltic-dry', name: 'Baltic Dry Index', value: '1,024', trend: 'down' },
         { id: 'world-trade', name: 'World Trade Vol', value: '+1.8%', trend: 'neutral' },
+      ],
+      sentimentIndicators: [
+        { id: 'aaii-bull', name: 'AAII Bulls', value: '34.2%', trend: 'neutral' },
+        { id: 'aaii-bear', name: 'AAII Bears', value: '38.1%', trend: 'neutral' },
+        { id: 'aaii-spread', name: 'Bull-Bear Spread', value: '-3.9%', trend: 'up' },
+        { id: 'naaim', name: 'NAAIM Exposure', value: '72.4', trend: 'neutral' },
+        { id: 'fear-greed', name: 'Fear & Greed', value: '44', trend: 'neutral' },
+        { id: 'fund-flows', name: 'Equity Fund Flows', value: '+$8.2B', trend: 'up' },
+        { id: 'margin-debt', name: 'Margin Debt', value: '$780B', trend: 'neutral' },
+        { id: 'margin-chg', name: 'Margin Debt MoM', value: '+1.2%', trend: 'neutral' },
       ],
       macroIndicators: [
         { id: 'vix', name: 'VIX', value: '18.2', trend: 'up' },
@@ -1543,12 +1561,12 @@
         </div>
       `).join('');
       
-      // Risk Sentiment indicators
-      document.getElementById('macroGrid').innerHTML = data.macroIndicators.map(m => `
+      // Sentiment & Positioning indicators
+      document.getElementById('sentimentGrid').innerHTML = (data.sentimentIndicators || []).map(m => `
         <div class="macro-card">
           <div class="macro-value">${m.value}</div>
           <div class="macro-name">${m.name}</div>
-          <div class="macro-trend trend-${m.trend}">${m.trend === 'up' ? '↑' : m.trend === 'down' ? '↓' : '→'}</div>
+          <div class="macro-trend trend-${m.trend}">${m.trend === 'up' ? '↑ greedy' : m.trend === 'down' ? '↓ fearful' : '→ neutral'}</div>
         </div>
       `).join('');
       
