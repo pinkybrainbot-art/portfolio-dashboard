@@ -547,7 +547,22 @@
         
         <div class="card" style="margin-top: 20px;">
           <div class="card-header">
-            <span class="card-title">📊 II. Risk Sentiment</span>
+            <span class="card-title">📈 II. Interest Rates & Cost of Capital</span>
+            <span style="font-size:0.75rem;color:#8b949e;">Gravity exists</span>
+          </div>
+          <div class="grid-4" id="ratesGrid"></div>
+          <div style="margin-top:15px;display:flex;gap:10px;flex-wrap:wrap;">
+            <a href="https://www.tradingview.com/symbols/TVC-US10Y/" target="_blank" class="btn btn-secondary">📈 10Y Yield</a>
+            <a href="https://www.tradingview.com/symbols/TVC-US02Y/" target="_blank" class="btn btn-secondary">📈 2Y Yield</a>
+            <a href="https://fred.stlouisfed.org/series/T10YIE" target="_blank" class="btn btn-secondary">💹 Breakeven Inflation</a>
+            <a href="https://www.cmegroup.com/markets/interest-rates/cme-fedwatch-tool.html" target="_blank" class="btn btn-secondary">🎯 CME FedWatch</a>
+            <a href="https://fred.stlouisfed.org/series/T10Y2Y" target="_blank" class="btn btn-secondary">📉 Yield Curve</a>
+          </div>
+        </div>
+        
+        <div class="card" style="margin-top: 20px;">
+          <div class="card-header">
+            <span class="card-title">🎭 III. Risk Sentiment</span>
           </div>
           <div class="grid-4" id="macroGrid"></div>
         </div>
@@ -809,6 +824,16 @@
         { id: 'rrp', name: 'Reverse Repo', value: '$168B', trend: 'down' },
         { id: 'cb-combined', name: 'G4 Central Banks', value: '$28.1T', trend: 'neutral' },
         { id: 'm2-spx-lag', name: 'M2→SPX Signal', value: 'Bullish', trend: 'up' },
+      ],
+      ratesIndicators: [
+        { id: '10y', name: '10Y Treasury', value: '4.52%', trend: 'up' },
+        { id: '2y', name: '2Y Treasury', value: '4.21%', trend: 'up' },
+        { id: 'real-rate', name: 'Real Rate (10Y-BEI)', value: '2.12%', trend: 'up' },
+        { id: 'yield-curve', name: '2Y/10Y Spread', value: '+31bp', trend: 'up' },
+        { id: 'fed-funds', name: 'Fed Funds Rate', value: '4.50%', trend: 'neutral' },
+        { id: 'fed-terminal', name: 'Terminal Rate Exp', value: '3.75%', trend: 'down' },
+        { id: 'cuts-2026', name: 'Cuts Priced 2026', value: '2-3 cuts', trend: 'neutral' },
+        { id: 'bei', name: 'Breakeven Inflation', value: '2.40%', trend: 'neutral' },
       ],
       macroIndicators: [
         { id: 'vix', name: 'VIX', value: '18.2', trend: 'up' },
@@ -1237,7 +1262,16 @@
         </div>
       `).join('');
       
-      // Macro indicators
+      // Rates indicators
+      document.getElementById('ratesGrid').innerHTML = (data.ratesIndicators || []).map(m => `
+        <div class="macro-card">
+          <div class="macro-value">${m.value}</div>
+          <div class="macro-name">${m.name}</div>
+          <div class="macro-trend trend-${m.trend}">${m.trend === 'up' ? '↑ rising' : m.trend === 'down' ? '↓ falling' : '→ stable'}</div>
+        </div>
+      `).join('');
+      
+      // Risk Sentiment indicators
       document.getElementById('macroGrid').innerHTML = data.macroIndicators.map(m => `
         <div class="macro-card">
           <div class="macro-value">${m.value}</div>
