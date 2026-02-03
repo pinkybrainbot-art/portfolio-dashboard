@@ -452,7 +452,7 @@
       <div class="tab-content" id="holdings">
         <div class="card">
           <div class="card-header">
-            <span class="card-title">📊 All Holdings</span>
+            <span class="card-title">📈 Stocks</span>
             <button class="btn btn-primary" onclick="openModal('holdingModal')">+ Add</button>
           </div>
           <div class="table-container">
@@ -464,11 +464,31 @@
                   <th>Shares</th>
                   <th>Price</th>
                   <th>Value</th>
-                  <th>Type</th>
                   <th></th>
                 </tr>
               </thead>
-              <tbody id="holdingsTable"></tbody>
+              <tbody id="stocksTable"></tbody>
+            </table>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">🪙 Crypto</span>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Symbol</th>
+                  <th>Name</th>
+                  <th>Shares</th>
+                  <th>Price</th>
+                  <th>Value</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="cryptoTable"></tbody>
             </table>
           </div>
         </div>
@@ -721,7 +741,7 @@
 
   <script>
     // ==================== CONFIG ====================
-    const PIN_HASH = '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92'; // SHA256 of '123456'
+    const PIN_HASH = '4dea5c7cb70f50322ec9d734aa4aa078be9227c05251e18991c596f387552370'; // SHA256 of '1984'
     const SESSION_KEY = 'portfolio-auth-v2';
     const TELEGRAM_BOT_USERNAME = 'PinkyPablo_bot';
     
@@ -747,11 +767,11 @@
       ],
       cash: 32460,
       weeklyValues: [
-        { date: '2026-01-06', value: 295000 },
-        { date: '2026-01-13', value: 302000 },
-        { date: '2026-01-20', value: 298000 },
-        { date: '2026-01-27', value: 314000 },
-        { date: '2026-02-02', value: 311260 },
+        { date: '2026-01-06', value: 340000 },
+        { date: '2026-01-13', value: 355000 },
+        { date: '2026-01-20', value: 348000 },
+        { date: '2026-01-27', value: 365000 },
+        { date: '2026-02-02', value: 378177 },
       ],
       theses: [
         { symbol: 'TSLA', thesis: 'Robotaxi and humanoid robots not priced in. Full autonomy could 10x revenue. Optimus humanoid is massive TAM.', conviction: 'high', target: 1000 },
@@ -1056,20 +1076,31 @@
         </div>
       `).join('') || '<p style="color:#8b949e;">No recent thoughts. Click "Quick Analysis" for insights.</p>';
       
-      // Holdings table
+      // Holdings tables - split by type
       const stocks = data.holdings.filter(h => h.type === 'stock').sort((a, b) => (b.shares * b.price) - (a.shares * a.price));
       const crypto = data.holdings.filter(h => h.type === 'crypto').sort((a, b) => (b.shares * b.price) - (a.shares * a.price));
-      document.getElementById('holdingsTable').innerHTML = [...stocks, ...crypto].map(h => `
+      
+      document.getElementById('stocksTable').innerHTML = stocks.map(h => `
         <tr>
           <td class="ticker">${h.symbol}</td>
           <td>${h.name}</td>
           <td>${h.shares.toFixed(4)}</td>
           <td>$${h.price.toLocaleString()}</td>
           <td>${formatCurrency(h.shares * h.price)}</td>
-          <td>${h.type}</td>
           <td><button class="btn btn-secondary" onclick="deleteHolding('${h.symbol}')">×</button></td>
         </tr>
-      `).join('');
+      `).join('') || '<tr><td colspan="6" style="text-align:center;color:#8b949e;">No stocks</td></tr>';
+      
+      document.getElementById('cryptoTable').innerHTML = crypto.map(h => `
+        <tr>
+          <td class="ticker">${h.symbol}</td>
+          <td>${h.name}</td>
+          <td>${h.shares.toFixed(4)}</td>
+          <td>$${h.price.toLocaleString()}</td>
+          <td>${formatCurrency(h.shares * h.price)}</td>
+          <td><button class="btn btn-secondary" onclick="deleteHolding('${h.symbol}')">×</button></td>
+        </tr>
+      `).join('') || '<tr><td colspan="6" style="text-align:center;color:#8b949e;">No crypto</td></tr>';
       
       // Theses
       document.getElementById('thesesGrid').innerHTML = data.theses.map(t => `
@@ -1090,7 +1121,7 @@
             <div class="watchlist-ticker">${t.action.toUpperCase()} ${t.shares} ${t.symbol}</div>
             <div class="watchlist-note">${formatDate(t.date)} @ $${t.price}${t.notes ? ' — ' + t.notes : ''}</div>
           </div>
-          <div class="${t.action === 'buy' ? 'positive' : 'negative'}">${formatCurrency(t.shares * t.price)}</div>
+          <div class="${t.action === 'buy' ? 'negative' : 'positive'}">${formatCurrency(t.shares * t.price)}</div>
         </div>
       `).join('') || '<p style="color:#8b949e;">No transactions logged.</p>';
       
