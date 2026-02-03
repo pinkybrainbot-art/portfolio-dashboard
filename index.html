@@ -464,6 +464,7 @@
                   <th>Shares</th>
                   <th>Price</th>
                   <th>Value</th>
+                  <th>%</th>
                   <th></th>
                 </tr>
               </thead>
@@ -485,6 +486,7 @@
                   <th>Shares</th>
                   <th>Price</th>
                   <th>Value</th>
+                  <th>%</th>
                   <th></th>
                 </tr>
               </thead>
@@ -1147,28 +1149,37 @@
       // Holdings tables - split by type
       const stocks = data.holdings.filter(h => h.type === 'stock').sort((a, b) => (b.shares * b.price) - (a.shares * a.price));
       const crypto = data.holdings.filter(h => h.type === 'crypto').sort((a, b) => (b.shares * b.price) - (a.shares * a.price));
+      const totalInvestedValue = data.holdings.reduce((sum, h) => sum + h.shares * h.price, 0);
       
-      document.getElementById('stocksTable').innerHTML = stocks.map(h => `
+      document.getElementById('stocksTable').innerHTML = stocks.map(h => {
+        const value = h.shares * h.price;
+        const pct = totalInvestedValue > 0 ? ((value / totalInvestedValue) * 100).toFixed(1) : 0;
+        return `
         <tr>
           <td class="ticker">${h.symbol}</td>
           <td>${h.name}</td>
           <td>${h.shares.toFixed(2)}</td>
           <td>$${h.price.toLocaleString()}</td>
-          <td>${formatCurrency(h.shares * h.price)}</td>
+          <td>${formatCurrency(value)}</td>
+          <td>${pct}%</td>
           <td><button class="btn btn-secondary" onclick="deleteHolding('${h.symbol}')">×</button></td>
-        </tr>
-      `).join('') || '<tr><td colspan="6" style="text-align:center;color:#8b949e;">No stocks</td></tr>';
+        </tr>`;
+      }).join('') || '<tr><td colspan="7" style="text-align:center;color:#8b949e;">No stocks</td></tr>';
       
-      document.getElementById('cryptoTable').innerHTML = crypto.map(h => `
+      document.getElementById('cryptoTable').innerHTML = crypto.map(h => {
+        const value = h.shares * h.price;
+        const pct = totalInvestedValue > 0 ? ((value / totalInvestedValue) * 100).toFixed(1) : 0;
+        return `
         <tr>
           <td class="ticker">${h.symbol}</td>
           <td>${h.name}</td>
           <td>${h.shares.toFixed(2)}</td>
           <td>$${h.price.toLocaleString()}</td>
-          <td>${formatCurrency(h.shares * h.price)}</td>
+          <td>${formatCurrency(value)}</td>
+          <td>${pct}%</td>
           <td><button class="btn btn-secondary" onclick="deleteHolding('${h.symbol}')">×</button></td>
-        </tr>
-      `).join('') || '<tr><td colspan="6" style="text-align:center;color:#8b949e;">No crypto</td></tr>';
+        </tr>`;
+      }).join('') || '<tr><td colspan="7" style="text-align:center;color:#8b949e;">No crypto</td></tr>';
       
       // Theses
       document.getElementById('thesesGrid').innerHTML = data.theses.map(t => `
