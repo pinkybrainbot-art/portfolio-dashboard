@@ -967,6 +967,9 @@
         initChart();
         render();
         console.log('✅ Render complete');
+        
+        // Fetch live prices in background after initial render
+        fetchLivePrices();
       } catch (e) {
         console.error('❌ Render error:', e);
         // Last resort - show something
@@ -977,6 +980,71 @@
     function saveLocal() {
       data.lastUpdated = new Date().toISOString();
       localStorage.setItem('portfolio-dashboard-v3', JSON.stringify(data));
+    }
+    
+    // ==================== LIVE PRICE UPDATES ====================
+    async function fetchLivePrices() {
+      console.log('📡 Fetching live prices...');
+      
+      try {
+        // Fetch crypto prices from CoinGecko (free, no API key needed)
+        const cryptoIds = { 'BTC': 'bitcoin', 'SOL': 'solana', 'ETH': 'ethereum' };
+        const cryptoSymbols = data.holdings.filter(h => h.type === 'crypto').map(h => h.symbol);
+        const coinIds = cryptoSymbols.map(s => cryptoIds[s]).filter(Boolean).join(',');
+        
+        if (coinIds) {
+          const cryptoRes = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coinIds}&vs_currencies=usd`);
+          if (cryptoRes.ok) {
+            const cryptoData = await cryptoRes.json();
+            data.holdings.forEach(h => {
+              const coinId = cryptoIds[h.symbol];
+              if (coinId && cryptoData[coinId]?.usd) {
+                h.price = cryptoData[coinId].usd;
+                console.log(`✅ ${h.symbol}: $${h.price}`);
+              }
+            });
+          }
+        }
+        
+        // Fetch stock prices from Yahoo Finance via AllOrigins proxy
+        const stockSymbols = data.holdings.filter(h => h.type === 'stock').map(h => h.symbol);
+        for (const symbol of stockSymbols) {
+          try {
+            const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1d`;
+            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+            const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(5000) });
+            if (res.ok) {
+              const json = await res.json();
+              const price = json?.chart?.result?.[0]?.meta?.regularMarketPrice;
+              if (price) {
+                const holding = data.holdings.find(h => h.symbol === symbol);
+                if (holding) {
+                  holding.price = price;
+                  console.log(`✅ ${symbol}: $${price}`);
+                }
+              }
+            }
+          } catch (e) {
+            console.log(`⚠️ Could not fetch ${symbol}:`, e.message);
+          }
+        }
+        
+        // Update Supabase with new prices if connected
+        if (supabaseClient) {
+          for (const h of data.holdings) {
+            await supabaseClient.from('prices').upsert({ symbol: h.symbol, price: h.price, updated_at: new Date().toISOString() }, { onConflict: 'symbol' });
+          }
+          console.log('💾 Prices saved to Supabase');
+        }
+        
+        data.lastUpdated = new Date().toISOString();
+        saveLocal();
+        render();
+        console.log('✅ Live prices updated!');
+        
+      } catch (e) {
+        console.error('❌ Price fetch error:', e);
+      }
     }
     
     // ==================== HELPERS ====================
