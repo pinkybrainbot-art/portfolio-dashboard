@@ -637,7 +637,22 @@
         
         <div class="card" style="margin-top: 20px;">
           <div class="card-header">
-            <span class="card-title">🎭 VIII. Risk Sentiment</span>
+            <span class="card-title">📊 VIII. Market Internals</span>
+            <span style="font-size:0.75rem;color:#8b949e;">Who's actually buying?</span>
+          </div>
+          <div class="grid-4" id="internalsGrid"></div>
+          <div style="margin-top:15px;display:flex;gap:10px;flex-wrap:wrap;">
+            <a href="https://www.tradingview.com/symbols/NYSE-ADD/" target="_blank" class="btn btn-secondary">📈 A/D Line</a>
+            <a href="https://www.barchart.com/stocks/indices/percent-above-ma" target="_blank" class="btn btn-secondary">📊 % Above MA</a>
+            <a href="https://www.tradingview.com/symbols/AMEX-RSP/" target="_blank" class="btn btn-secondary">⚖️ RSP (Equal Wt)</a>
+            <a href="https://finviz.com/groups.ashx" target="_blank" class="btn btn-secondary">🗂️ Sector Map</a>
+            <a href="https://www.tradingview.com/symbols/TVC-NYA/" target="_blank" class="btn btn-secondary">📉 NYSE Composite</a>
+          </div>
+        </div>
+        
+        <div class="card" style="margin-top: 20px;">
+          <div class="card-header">
+            <span class="card-title">🎭 IX. Risk Sentiment</span>
           </div>
           <div class="grid-4" id="macroGrid"></div>
         </div>
@@ -959,6 +974,16 @@
         { id: 'margins-hist', name: 'Margins vs Avg', value: 'Above', trend: 'up' },
         { id: 'cape', name: 'CAPE Ratio', value: '36.2', trend: 'neutral' },
         { id: 'cape-context', name: 'CAPE vs History', value: 'Top 5%', trend: 'down' },
+      ],
+      internalsIndicators: [
+        { id: 'ad-line', name: 'A/D Line Trend', value: 'Rising', trend: 'up' },
+        { id: 'ad-diverge', name: 'A/D vs SPX', value: 'Confirming', trend: 'up' },
+        { id: 'above-200', name: '% Above 200-DMA', value: '58%', trend: 'neutral' },
+        { id: 'above-50', name: '% Above 50-DMA', value: '52%', trend: 'neutral' },
+        { id: 'rsp-spy', name: 'RSP/SPY Ratio', value: '0.31', trend: 'down' },
+        { id: 'breadth', name: 'Breadth Thrust', value: 'Neutral', trend: 'neutral' },
+        { id: 'new-hi-lo', name: 'New Highs - Lows', value: '+42', trend: 'up' },
+        { id: 'sector-breadth', name: 'Sectors Bullish', value: '7/11', trend: 'up' },
       ],
       macroIndicators: [
         { id: 'vix', name: 'VIX', value: '18.2', trend: 'up' },
@@ -1438,6 +1463,15 @@
           <div class="macro-value">${m.value}</div>
           <div class="macro-name">${m.name}</div>
           <div class="macro-trend trend-${m.trend}">${m.trend === 'up' ? '↑ bullish' : m.trend === 'down' ? '↓ caution' : '→ neutral'}</div>
+        </div>
+      `).join('');
+      
+      // Market Internals indicators
+      document.getElementById('internalsGrid').innerHTML = (data.internalsIndicators || []).map(m => `
+        <div class="macro-card">
+          <div class="macro-value">${m.value}</div>
+          <div class="macro-name">${m.name}</div>
+          <div class="macro-trend trend-${m.trend}">${m.trend === 'up' ? '↑ healthy' : m.trend === 'down' ? '↓ weak' : '→ mixed'}</div>
         </div>
       `).join('');
       
