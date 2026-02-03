@@ -512,7 +512,7 @@
         <div class="card">
           <div class="card-header">
             <span class="card-title">📜 Transaction Log</span>
-            <button class="btn btn-primary" onclick="openModal('transactionModal')">+ Add</button>
+            <button class="btn btn-primary" onclick="editingTransactionIdx=null;clearForm('transaction');openModal('transactionModal')">+ Add</button>
           </div>
           <div id="transactionLog"></div>
         </div>
@@ -1194,13 +1194,17 @@
       `).join('') || '<p style="color:#8b949e;">No theses yet.</p>';
       
       // Transactions
-      document.getElementById('transactionLog').innerHTML = data.transactions.map(t => `
+      document.getElementById('transactionLog').innerHTML = data.transactions.map((t, idx) => `
         <div class="watchlist-item">
           <div>
             <div class="watchlist-ticker">${t.action.toUpperCase()} ${t.shares} ${t.symbol}</div>
             <div class="watchlist-note">${formatDate(t.date)} @ $${t.price}${t.notes ? ' — ' + t.notes : ''}</div>
           </div>
-          <div class="${t.action === 'buy' ? 'negative' : 'positive'}">${formatCurrency(t.shares * t.price)}</div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span class="${t.action === 'buy' ? 'negative' : 'positive'}">${formatCurrency(t.shares * t.price)}</span>
+            <button class="btn btn-secondary" onclick="editTransaction(${idx})" title="Edit">✏️</button>
+            <button class="btn btn-secondary" onclick="deleteTransaction(${idx})" title="Delete">×</button>
+          </div>
         </div>
       `).join('') || '<p style="color:#8b949e;">No transactions logged.</p>';
       
@@ -1332,6 +1336,33 @@
       clearForm('note');
     }
     
+    let editingTransactionIdx = null;
+    
+    function editTransaction(idx) {
+      const t = data.transactions[idx];
+      if (!t) return;
+      editingTransactionIdx = idx;
+      document.getElementById('txSymbol').value = t.symbol;
+      document.getElementById('txAction').value = t.action;
+      document.getElementById('txShares').value = t.shares;
+      document.getElementById('txPrice').value = t.price;
+      document.getElementById('txDate').value = t.date;
+      openModal('transactionModal');
+    }
+    
+    async function deleteTransaction(idx) {
+      const t = data.transactions[idx];
+      if (!t || !confirm(`Delete ${t.action} ${t.shares} ${t.symbol}?`)) return;
+      
+      if (supabaseClient && t.id) {
+        await supabaseClient.from('transactions').delete().eq('id', t.id);
+      }
+      
+      data.transactions.splice(idx, 1);
+      saveLocal();
+      render();
+    }
+    
     async function saveTransaction() {
       const symbol = document.getElementById('txSymbol').value.toUpperCase();
       const action = document.getElementById('txAction').value;
@@ -1341,11 +1372,25 @@
       
       if (!symbol || !shares || !price) return alert('All fields required');
       
-      const tx = { symbol, action, shares, price, date };
-      data.transactions.unshift(tx);
-      
-      if (supabaseClient) {
-        await supabaseClient.from('transactions').insert({ symbol, action, shares, price, date });
+      if (editingTransactionIdx !== null) {
+        // Update existing
+        const oldTx = data.transactions[editingTransactionIdx];
+        const tx = { ...oldTx, symbol, action, shares, price, date };
+        data.transactions[editingTransactionIdx] = tx;
+        
+        if (supabaseClient && oldTx.id) {
+          await supabaseClient.from('transactions').update({ symbol, action, shares, price, date }).eq('id', oldTx.id);
+        }
+        editingTransactionIdx = null;
+      } else {
+        // Create new
+        const tx = { symbol, action, shares, price, date };
+        data.transactions.unshift(tx);
+        
+        if (supabaseClient) {
+          const { data: inserted } = await supabaseClient.from('transactions').insert({ symbol, action, shares, price, date }).select();
+          if (inserted?.[0]) tx.id = inserted[0].id;
+        }
       }
       
       saveLocal();
