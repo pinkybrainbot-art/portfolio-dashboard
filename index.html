@@ -622,7 +622,22 @@
         
         <div class="card" style="margin-top: 20px;">
           <div class="card-header">
-            <span class="card-title">🎭 VII. Risk Sentiment</span>
+            <span class="card-title">💰 VII. Earnings & Valuation</span>
+            <span style="font-size:0.75rem;color:#8b949e;">Price lies, earnings don't — eventually</span>
+          </div>
+          <div class="grid-4" id="earningsGrid"></div>
+          <div style="margin-top:15px;display:flex;gap:10px;flex-wrap:wrap;">
+            <a href="https://www.yardeni.com/pub/yriearningsforecast.pdf" target="_blank" class="btn btn-secondary">📈 Forward EPS</a>
+            <a href="https://www.factset.com/earningsinsight" target="_blank" class="btn btn-secondary">📊 FactSet Earnings</a>
+            <a href="https://www.multpl.com/shiller-pe" target="_blank" class="btn btn-secondary">📉 CAPE Ratio</a>
+            <a href="https://www.yardeni.com/pub/peacockfeval.pdf" target="_blank" class="btn btn-secondary">💹 Valuations</a>
+            <a href="https://www.currentmarketvaluation.com/" target="_blank" class="btn btn-secondary">🎯 Market Valuation</a>
+          </div>
+        </div>
+        
+        <div class="card" style="margin-top: 20px;">
+          <div class="card-header">
+            <span class="card-title">🎭 VIII. Risk Sentiment</span>
           </div>
           <div class="grid-4" id="macroGrid"></div>
         </div>
@@ -934,6 +949,16 @@
         { id: 'sahm-status', name: 'Sahm Triggered?', value: 'No', trend: 'up' },
         { id: 'wage-growth', name: 'Wage Growth YoY', value: '4.1%', trend: 'down' },
         { id: 'wage-prod', name: 'Wages vs Productivity', value: '+1.2%', trend: 'neutral' },
+      ],
+      earningsIndicators: [
+        { id: 'fwd-eps', name: 'S&P Fwd EPS', value: '$275', trend: 'up' },
+        { id: 'fwd-pe', name: 'Forward P/E', value: '21.9x', trend: 'neutral' },
+        { id: 'eps-revisions', name: 'EPS Revisions', value: '+1.2', trend: 'up' },
+        { id: 'rev-ratio', name: 'Up/Down Ratio', value: '1.8x', trend: 'up' },
+        { id: 'margins', name: 'S&P Net Margins', value: '12.1%', trend: 'neutral' },
+        { id: 'margins-hist', name: 'Margins vs Avg', value: 'Above', trend: 'up' },
+        { id: 'cape', name: 'CAPE Ratio', value: '36.2', trend: 'neutral' },
+        { id: 'cape-context', name: 'CAPE vs History', value: 'Top 5%', trend: 'down' },
       ],
       macroIndicators: [
         { id: 'vix', name: 'VIX', value: '18.2', trend: 'up' },
@@ -1404,6 +1429,15 @@
           <div class="macro-value">${m.value}</div>
           <div class="macro-name">${m.name}</div>
           <div class="macro-trend trend-${m.trend}">${m.trend === 'up' ? '↑ strong' : m.trend === 'down' ? '↓ weakening' : '→ stable'}</div>
+        </div>
+      `).join('');
+      
+      // Earnings indicators
+      document.getElementById('earningsGrid').innerHTML = (data.earningsIndicators || []).map(m => `
+        <div class="macro-card">
+          <div class="macro-value">${m.value}</div>
+          <div class="macro-name">${m.name}</div>
+          <div class="macro-trend trend-${m.trend}">${m.trend === 'up' ? '↑ bullish' : m.trend === 'down' ? '↓ caution' : '→ neutral'}</div>
         </div>
       `).join('');
       
