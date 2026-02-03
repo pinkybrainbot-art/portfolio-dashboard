@@ -929,7 +929,7 @@
             }
             
             if (transactionsRes.data?.length) {
-              data.transactions = transactionsRes.data.map(t => ({ symbol: t.symbol, action: t.action, shares: parseFloat(t.shares), price: parseFloat(t.price), date: t.date, notes: t.notes }));
+              data.transactions = transactionsRes.data.map(t => ({ id: t.id, symbol: t.symbol, action: t.action, shares: parseFloat(t.shares), price: parseFloat(t.price), date: t.date, notes: t.notes }));
             }
             
             if (notesRes.data?.length) {
