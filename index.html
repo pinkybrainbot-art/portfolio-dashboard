@@ -404,11 +404,19 @@
             <div class="stat-value" id="statCrypto">$0</div>
             <div class="stat-label">Crypto</div>
           </div>
+          <div class="stat-card">
+            <div class="stat-value" id="statYTD">-</div>
+            <div class="stat-label">YTD Return</div>
+          </div>
         </div>
         
         <div class="card">
           <div class="card-header">
-            <span class="card-title">📈 Portfolio Value (Weekly)</span>
+            <span class="card-title">📈 Year to Date Performance</span>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span id="priceStatus" style="font-size: 0.75rem; color: #8b949e;"></span>
+              <button class="btn btn-primary" onclick="refreshPrices()" style="padding: 6px 12px; font-size: 0.8rem;">🔄 Refresh</button>
+            </div>
           </div>
           <canvas id="valueChart" height="100"></canvas>
         </div>
@@ -1089,11 +1097,13 @@
       }
     }
     
-    function showApp() {
+    async function showApp() {
       document.getElementById('loginScreen').style.display = 'none';
       document.getElementById('appContent').style.display = 'block';
       initSupabase();
-      loadData();
+      await loadData();
+      // Refresh prices on load
+      setTimeout(() => refreshPrices(), 500);
     }
     
     document.getElementById('pinInput').addEventListener('keypress', function(e) {
@@ -1389,6 +1399,97 @@
       return { stocksValue, cryptoValue, totalValue };
     }
     
+    // ==================== LIVE PRICE REFRESH ====================
+    const COINGECKO_IDS = {
+      'BTC': 'bitcoin', 'SOL': 'solana', 'SUI': 'sui', 'ETH': 'ethereum',
+      'RENDER': 'render-token', 'JUP': 'jupiter-exchange-solana', 'LINK': 'chainlink', 'BONK': 'bonk'
+    };
+    
+    async function refreshPrices() {
+      console.log('🔄 Refreshing prices...');
+      const statusEl = document.getElementById('priceStatus');
+      if (statusEl) statusEl.textContent = 'Updating prices...';
+      
+      try {
+        const cryptoHoldings = data.holdings.filter(h => h.type === 'crypto');
+        const stockHoldings = data.holdings.filter(h => h.type === 'stock');
+        
+        // Fetch crypto prices from CoinGecko
+        if (cryptoHoldings.length > 0) {
+          const cgIds = cryptoHoldings.map(h => COINGECKO_IDS[h.symbol]).filter(Boolean);
+          if (cgIds.length > 0) {
+            const cgUrl = `https://api.coingecko.com/api/v3/simple/price?ids=${cgIds.join(',')}&vs_currencies=usd`;
+            const cgRes = await fetch(cgUrl);
+            const cgData = await cgRes.json();
+            
+            cryptoHoldings.forEach(h => {
+              const cgId = COINGECKO_IDS[h.symbol];
+              if (cgId && cgData[cgId]?.usd) {
+                h.price = cgData[cgId].usd;
+              }
+            });
+            console.log('✅ Crypto prices updated');
+          }
+        }
+        
+        // Fetch stock prices via Yahoo Finance proxy
+        if (stockHoldings.length > 0) {
+          const symbols = stockHoldings.map(h => h.symbol).join(',');
+          const yahooUrl = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbols}`;
+          const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(yahooUrl)}`;
+          
+          try {
+            const yahooRes = await fetch(proxyUrl);
+            const yahooData = await yahooRes.json();
+            
+            if (yahooData.quoteResponse?.result) {
+              yahooData.quoteResponse.result.forEach(quote => {
+                const holding = stockHoldings.find(h => h.symbol === quote.symbol);
+                if (holding && quote.regularMarketPrice) {
+                  holding.price = quote.regularMarketPrice;
+                }
+              });
+              console.log('✅ Stock prices updated');
+            }
+          } catch (stockErr) {
+            console.log('⚠️ Stock proxy failed, using cached prices');
+          }
+        }
+        
+        // Update Supabase prices table
+        if (supabase) {
+          const updates = data.holdings.map(h => ({
+            symbol: h.symbol,
+            price: h.price,
+            updated_at: new Date().toISOString()
+          }));
+          await supabase.from('prices').upsert(updates, { onConflict: 'symbol' });
+        }
+        
+        data.lastPriceUpdate = new Date().toISOString();
+        if (statusEl) statusEl.textContent = `Updated ${new Date().toLocaleTimeString()}`;
+        render();
+        
+      } catch (err) {
+        console.error('Price refresh error:', err);
+        if (statusEl) statusEl.textContent = 'Update failed';
+      }
+    }
+    
+    function calculateYTD() {
+      const currentYear = new Date().getFullYear();
+      const ytdSnapshots = data.weeklyValues.filter(v => new Date(v.date).getFullYear() === currentYear);
+      
+      if (ytdSnapshots.length === 0) return { change: 0, percent: 0, startValue: 0 };
+      
+      const startValue = ytdSnapshots[0].value;
+      const { totalValue } = calculateTotals();
+      const change = totalValue - startValue;
+      const percent = startValue > 0 ? (change / startValue) * 100 : 0;
+      
+      return { change, percent, startValue, currentValue: totalValue };
+    }
+    
     // ==================== CHART ====================
     let valueChart = null;
     
@@ -1398,13 +1499,17 @@
       
       if (valueChart) valueChart.destroy();
       
+      // Filter to YTD only
+      const currentYear = new Date().getFullYear();
+      const ytdValues = data.weeklyValues.filter(v => new Date(v.date).getFullYear() === currentYear);
+      
       valueChart = new Chart(ctx, {
         type: 'line',
         data: {
-          labels: data.weeklyValues.map(v => formatDate(v.date)),
+          labels: ytdValues.map(v => formatDate(v.date)),
           datasets: [{
             label: 'Portfolio Value',
-            data: data.weeklyValues.map(v => v.value),
+            data: ytdValues.map(v => v.value),
             borderColor: '#58a6ff',
             backgroundColor: 'rgba(88, 166, 255, 0.1)',
             fill: true,
@@ -1440,6 +1545,19 @@
       // Overview stats
       document.getElementById('statStocks').textContent = formatCurrency(stocksValue);
       document.getElementById('statCrypto').textContent = formatCurrency(cryptoValue);
+      
+      // YTD calculation
+      const ytd = calculateYTD();
+      const ytdEl = document.getElementById('statYTD');
+      if (ytdEl) {
+        if (ytd.startValue > 0) {
+          const sign = ytd.percent >= 0 ? '+' : '';
+          ytdEl.textContent = `${sign}${ytd.percent.toFixed(1)}%`;
+          ytdEl.className = 'stat-value ' + (ytd.percent >= 0 ? 'positive' : 'negative');
+        } else {
+          ytdEl.textContent = '-';
+        }
+      }
       
       // Top holdings
       const sorted = [...data.holdings].sort((a, b) => (b.shares * b.price) - (a.shares * a.price)).slice(0, 6);
@@ -1651,8 +1769,10 @@
       
       // Update chart
       if (valueChart) {
-        valueChart.data.labels = data.weeklyValues.map(v => formatDate(v.date));
-        valueChart.data.datasets[0].data = data.weeklyValues.map(v => v.value);
+        const currentYear = new Date().getFullYear();
+        const ytdValues = data.weeklyValues.filter(v => new Date(v.date).getFullYear() === currentYear);
+        valueChart.data.labels = ytdValues.map(v => formatDate(v.date));
+        valueChart.data.datasets[0].data = ytdValues.map(v => v.value);
         valueChart.update();
       }
     }
