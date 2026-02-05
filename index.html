@@ -1408,56 +1408,70 @@
     async function refreshPrices() {
       console.log('🔄 Refreshing prices...');
       const statusEl = document.getElementById('priceStatus');
-      if (statusEl) statusEl.textContent = 'Updating prices...';
+      if (statusEl) statusEl.textContent = 'Updating...';
+      
+      let cryptoUpdated = false;
+      let stocksUpdated = false;
       
       try {
         const cryptoHoldings = data.holdings.filter(h => h.type === 'crypto');
         const stockHoldings = data.holdings.filter(h => h.type === 'stock');
         
-        // Fetch crypto prices from CoinGecko
+        // Fetch crypto prices from CoinGecko (reliable, CORS-friendly)
         if (cryptoHoldings.length > 0) {
           const cgIds = cryptoHoldings.map(h => COINGECKO_IDS[h.symbol]).filter(Boolean);
           if (cgIds.length > 0) {
-            const cgUrl = `https://api.coingecko.com/api/v3/simple/price?ids=${cgIds.join(',')}&vs_currencies=usd`;
-            const cgRes = await fetch(cgUrl);
-            const cgData = await cgRes.json();
-            
-            cryptoHoldings.forEach(h => {
-              const cgId = COINGECKO_IDS[h.symbol];
-              if (cgId && cgData[cgId]?.usd) {
-                h.price = cgData[cgId].usd;
+            try {
+              const cgUrl = `https://api.coingecko.com/api/v3/simple/price?ids=${cgIds.join(',')}&vs_currencies=usd`;
+              const cgRes = await fetch(cgUrl);
+              if (cgRes.ok) {
+                const cgData = await cgRes.json();
+                cryptoHoldings.forEach(h => {
+                  const cgId = COINGECKO_IDS[h.symbol];
+                  if (cgId && cgData[cgId]?.usd) {
+                    h.price = cgData[cgId].usd;
+                  }
+                });
+                cryptoUpdated = true;
+                console.log('✅ Crypto prices updated');
               }
-            });
-            console.log('✅ Crypto prices updated');
+            } catch (e) { console.log('⚠️ CoinGecko failed:', e); }
           }
         }
         
-        // Fetch stock prices via Yahoo Finance proxy
+        // Fetch stock prices via corsproxy.io (more reliable)
         if (stockHoldings.length > 0) {
           const symbols = stockHoldings.map(h => h.symbol).join(',');
-          const yahooUrl = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbols}`;
-          const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(yahooUrl)}`;
           
-          try {
-            const yahooRes = await fetch(proxyUrl);
-            const yahooData = await yahooRes.json();
-            
-            if (yahooData.quoteResponse?.result) {
-              yahooData.quoteResponse.result.forEach(quote => {
-                const holding = stockHoldings.find(h => h.symbol === quote.symbol);
-                if (holding && quote.regularMarketPrice) {
-                  holding.price = quote.regularMarketPrice;
+          // Try multiple proxies
+          const proxies = [
+            `https://corsproxy.io/?${encodeURIComponent(`https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbols}`)}`,
+            `https://api.codetabs.com/v1/proxy?quest=https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbols}`
+          ];
+          
+          for (const proxyUrl of proxies) {
+            try {
+              const yahooRes = await fetch(proxyUrl, { timeout: 5000 });
+              if (yahooRes.ok) {
+                const yahooData = await yahooRes.json();
+                if (yahooData.quoteResponse?.result) {
+                  yahooData.quoteResponse.result.forEach(quote => {
+                    const holding = stockHoldings.find(h => h.symbol === quote.symbol);
+                    if (holding && quote.regularMarketPrice) {
+                      holding.price = quote.regularMarketPrice;
+                    }
+                  });
+                  stocksUpdated = true;
+                  console.log('✅ Stock prices updated');
+                  break;
                 }
-              });
-              console.log('✅ Stock prices updated');
-            }
-          } catch (stockErr) {
-            console.log('⚠️ Stock proxy failed, using cached prices');
+              }
+            } catch (e) { console.log('⚠️ Proxy failed, trying next...'); }
           }
         }
         
-        // Update Supabase prices table
-        if (supabase) {
+        // Update Supabase if anything changed
+        if ((cryptoUpdated || stocksUpdated) && supabase) {
           const updates = data.holdings.map(h => ({
             symbol: h.symbol,
             price: h.price,
@@ -1467,12 +1481,16 @@
         }
         
         data.lastPriceUpdate = new Date().toISOString();
-        if (statusEl) statusEl.textContent = `Updated ${new Date().toLocaleTimeString()}`;
+        const status = cryptoUpdated || stocksUpdated 
+          ? `Updated ${new Date().toLocaleTimeString()}` 
+          : 'Using cached prices';
+        if (statusEl) statusEl.textContent = status;
         render();
         
       } catch (err) {
         console.error('Price refresh error:', err);
-        if (statusEl) statusEl.textContent = 'Update failed';
+        if (statusEl) statusEl.textContent = 'Using cached prices';
+        render(); // Still render with existing data
       }
     }
     
