@@ -1821,24 +1821,37 @@
       btn.disabled = true;
       btn.innerHTML = '⏳ Analyzing...';
       responseDiv.classList.add('active');
-      responseText.textContent = 'Sending request to Pinky via Telegram...';
+      responseText.textContent = 'Analyzing your portfolio...';
       
-      // Build context
-      const { stocksValue, cryptoValue, totalValue } = calculateTotals();
-      const topHoldings = [...data.holdings].sort((a,b) => (b.shares*b.price) - (a.shares*a.price)).slice(0,5).map(h => `${h.symbol}: $${(h.shares*h.price).toLocaleString()}`).join(', ');
-      
-      let message = '';
-      if (type === 'macro') {
-        message = `🔮 MACRO ANALYSIS REQUEST\n\nPortfolio: ${formatCurrency(totalValue)} (${formatCurrency(stocksValue)} stocks, ${formatCurrency(cryptoValue)} crypto)\nTop holdings: ${topHoldings}\n\nPlease analyze:\n1. Current macro conditions (VIX, DXY, yields)\n2. BTC liquidation levels and crypto sentiment\n3. Risk assessment for my portfolio\n4. Actionable recommendations`;
-      } else {
-        message = `🔮 QUICK ANALYSIS REQUEST\n\nPortfolio: ${formatCurrency(totalValue)}\nTop holdings: ${topHoldings}\n\nGive me a quick market pulse and any immediate concerns or opportunities for my positions.`;
+      try {
+        // Build context
+        const { stocksValue, cryptoValue, totalValue } = calculateTotals();
+        
+        // Call the API endpoint
+        const response = await fetch('/api/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            holdings: data.holdings,
+            totalValue,
+            stocksValue,
+            cryptoValue,
+            type
+          })
+        });
+        
+        const result = await response.json();
+        
+        if (result.error) {
+          responseText.textContent = `❌ Error: ${result.error}`;
+        } else {
+          responseText.textContent = result.analysis;
+        }
+        
+      } catch (error) {
+        console.error('Analysis error:', error);
+        responseText.textContent = `❌ Error: ${error.message}. Try again later.`;
       }
-      
-      // Open Telegram with pre-filled message
-      const telegramUrl = `https://t.me/${TELEGRAM_BOT_USERNAME}?text=${encodeURIComponent(message)}`;
-      window.open(telegramUrl, '_blank');
-      
-      responseText.textContent = '✅ Request sent! Check Telegram for Pinky\'s analysis.\n\nNote: Pinky will respond in your Telegram chat. Future versions will show the response here directly.';
       
       btn.disabled = false;
       btn.innerHTML = type === 'macro' ? '🔮 Analyze Market & Portfolio' : '🔮 Quick Analysis';
