@@ -1517,9 +1517,17 @@
       
       if (valueChart) valueChart.destroy();
       
-      // Filter to YTD only
+      // Filter to YTD only and add current value as latest point
       const currentYear = new Date().getFullYear();
       const ytdValues = data.weeklyValues.filter(v => new Date(v.date).getFullYear() === currentYear);
+      
+      // Add today's live value as the last point
+      const { totalValue } = calculateTotals();
+      const today = new Date().toISOString().split('T')[0];
+      const lastSnapshot = ytdValues[ytdValues.length - 1];
+      if (!lastSnapshot || lastSnapshot.date !== today) {
+        ytdValues.push({ date: today, value: totalValue });
+      }
       
       valueChart = new Chart(ctx, {
         type: 'line',
@@ -1789,6 +1797,15 @@
       if (valueChart) {
         const currentYear = new Date().getFullYear();
         const ytdValues = data.weeklyValues.filter(v => new Date(v.date).getFullYear() === currentYear);
+        
+        // Add today's live value as the last point
+        const { totalValue } = calculateTotals();
+        const today = new Date().toISOString().split('T')[0];
+        const lastSnapshot = ytdValues[ytdValues.length - 1];
+        if (!lastSnapshot || lastSnapshot.date !== today) {
+          ytdValues.push({ date: today, value: totalValue });
+        }
+        
         valueChart.data.labels = ytdValues.map(v => formatDate(v.date));
         valueChart.data.datasets[0].data = ytdValues.map(v => v.value);
         valueChart.update();
