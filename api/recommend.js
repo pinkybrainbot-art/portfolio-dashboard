@@ -31,8 +31,46 @@ export default async function handler(req, res) {
       .join('\n');
 
     let prompt;
+    let maxTokens = 1200;
     
-    if (type === 'highRisk') {
+    if (type === 'framework') {
+      maxTokens = 4000;
+      prompt = `You are a world-class macro strategist and portfolio architect. Assume I have no predefined asset, sector, or thesis.
+
+Generate investment recommendations for the next 1, 3, and 5 years.
+
+**PART 1: MACRO REGIME ANALYSIS**
+
+First, outline the most plausible macro regimes for each horizon:
+- **1-Year Outlook (2026-2027):** What's the base case? Key uncertainties?
+- **3-Year Outlook (2026-2029):** What structural shifts are likely? Where is uncertainty highest?
+- **5-Year Outlook (2026-2031):** What mega-trends dominate? What could derail them?
+
+**PART 2: INVESTMENT BUCKETS BY HORIZON**
+
+For EACH time horizon (1yr, 3yr, 5yr):
+
+Define 3-5 investment buckets based on return drivers. For each bucket:
+- **Bucket Name & Theme**
+- **Why it could outperform** (bull case)
+- **The bear case** (argue against it)
+- **Invalidation triggers** (what would kill this thesis?)
+- **Example assets** (specific tickers, sectors, or instruments)
+
+**PART 3: RISK-ADJUSTED ALLOCATIONS**
+
+Show how different risk profiles should allocate across these buckets:
+
+| Bucket | Conservative | Moderate | Aggressive |
+|--------|--------------|----------|------------|
+| ...    | X%           | X%       | X%         |
+
+**PART 4: KEY WATCHPOINTS**
+
+List 5-7 specific indicators or events to monitor that would signal regime change or require rebalancing.
+
+Be specific, contrarian where appropriate, and actionable. This should be institutional-quality analysis.`;
+    } else if (type === 'highRisk') {
       prompt = `You are an expert stock analyst specializing in high-conviction, short-term trading opportunities.
 
 Current Portfolio ($${totalValue?.toLocaleString()}):
@@ -105,7 +143,7 @@ Be direct and specific. Reference actual position sizes and suggest specific per
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 1200,
+        max_tokens: maxTokens,
         messages: [{ role: 'user', content: prompt }],
       }),
     });

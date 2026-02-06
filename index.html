@@ -377,7 +377,7 @@
       <div class="nav-tabs">
         <button class="nav-tab active" data-tab="overview">Overview</button>
         <button class="nav-tab" data-tab="holdings">Holdings</button>
-        <button class="nav-tab" data-tab="theses">Theses</button>
+        <button class="nav-tab" data-tab="theses">Frameworks</button>
         <button class="nav-tab" data-tab="transactions">Log</button>
         <button class="nav-tab" data-tab="watchlist">Watchlist</button>
         <button class="nav-tab" data-tab="macro">Macro</button>
@@ -544,11 +544,31 @@
         </div>
       </div>
       
-      <!-- Theses Tab -->
+      <!-- Investment Frameworks Tab -->
       <div class="tab-content" id="theses">
+        <!-- AI Framework Analysis -->
+        <div class="card" style="margin-bottom: 20px;">
+          <div class="card-header">
+            <span class="card-title">🧭 AI Investment Framework</span>
+            <button class="btn btn-ask" onclick="runFrameworkAnalysis()" id="frameworkBtn">
+              🚀 Run Framework
+            </button>
+          </div>
+          <div id="frameworkAnalysis">
+            <div class="note-card" id="frameworkCard" style="display: none;">
+              <div class="note-meta">
+                <span id="frameworkTimestamp"></span>
+              </div>
+              <div class="analysis-content" id="frameworkText"></div>
+            </div>
+            <p id="noFrameworkMsg" style="color:#8b949e;">Click "Run Framework" for a comprehensive AI-generated investment framework covering 1, 3, and 5 year horizons with macro regimes, investment buckets, and allocation strategies.</p>
+          </div>
+        </div>
+        
+        <!-- Existing Theses -->
         <div class="card">
           <div class="card-header">
-            <span class="card-title">📝 Investment Theses</span>
+            <span class="card-title">📝 My Investment Theses</span>
             <button class="btn btn-primary" onclick="openModal('thesisModal')">+ Add</button>
           </div>
           <div class="grid-2" id="thesesGrid"></div>
@@ -1294,6 +1314,9 @@
         
         // Load AI recommendations
         loadRecommendations();
+        
+        // Load investment framework
+        loadFramework();
         
         // Fetch live prices in background after initial render
         fetchLivePrices();
@@ -2166,6 +2189,101 @@
       
       btn.disabled = false;
       btn.innerHTML = type === 'highRisk' ? '🎲 Get Ideas' : '🔄 Analyze';
+    }
+    
+    // ==================== INVESTMENT FRAMEWORK ====================
+    let storedFramework = JSON.parse(localStorage.getItem('pinky-framework') || 'null');
+    
+    function renderFramework() {
+      const card = document.getElementById('frameworkCard');
+      const text = document.getElementById('frameworkText');
+      const timestamp = document.getElementById('frameworkTimestamp');
+      const noMsg = document.getElementById('noFrameworkMsg');
+      
+      if (storedFramework && storedFramework.text) {
+        card.style.display = 'block';
+        noMsg.style.display = 'none';
+        text.innerHTML = formatAnalysisText(storedFramework.text);
+        timestamp.textContent = formatDate(storedFramework.timestamp);
+      } else {
+        card.style.display = 'none';
+        noMsg.style.display = 'block';
+      }
+    }
+    
+    async function loadFramework() {
+      if (supabaseClient) {
+        try {
+          const { data: frameworks } = await supabaseClient
+            .from('ai_recommendations')
+            .select('*')
+            .eq('type', 'framework')
+            .order('created_at', { ascending: false })
+            .limit(1);
+          
+          if (frameworks && frameworks.length > 0) {
+            storedFramework = { text: frameworks[0].content, timestamp: frameworks[0].created_at };
+            localStorage.setItem('pinky-framework', JSON.stringify(storedFramework));
+          }
+        } catch (e) {
+          console.log('Could not load framework from Supabase:', e);
+        }
+      }
+      renderFramework();
+    }
+    
+    async function runFrameworkAnalysis() {
+      const btn = document.getElementById('frameworkBtn');
+      const card = document.getElementById('frameworkCard');
+      const text = document.getElementById('frameworkText');
+      const timestamp = document.getElementById('frameworkTimestamp');
+      const noMsg = document.getElementById('noFrameworkMsg');
+      
+      btn.disabled = true;
+      btn.innerHTML = '⏳ Generating Framework...';
+      card.style.display = 'block';
+      noMsg.style.display = 'none';
+      text.textContent = 'Generating comprehensive investment framework (this may take 30-60 seconds)...';
+      timestamp.textContent = 'Loading...';
+      
+      try {
+        const response = await fetch('/api/recommend', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'framework' })
+        });
+        
+        const result = await response.json();
+        
+        if (result.error) {
+          text.textContent = `❌ Error: ${result.error}`;
+        } else {
+          storedFramework = { text: result.analysis, timestamp: result.timestamp || new Date().toISOString() };
+          localStorage.setItem('pinky-framework', JSON.stringify(storedFramework));
+          
+          if (supabaseClient) {
+            try {
+              await supabaseClient.from('ai_recommendations').delete().eq('type', 'framework');
+              await supabaseClient.from('ai_recommendations').insert({
+                type: 'framework',
+                content: result.analysis,
+                created_at: storedFramework.timestamp
+              });
+            } catch (e) {
+              console.log('Could not save framework to Supabase:', e);
+            }
+          }
+          
+          renderFramework();
+        }
+        
+      } catch (error) {
+        console.error('Framework error:', error);
+        text.textContent = `❌ Error: ${error.message}. Try again later.`;
+      }
+      
+      btn.disabled = false;
+      btn.innerHTML = '🚀 Run Framework';
     }
     
     // ==================== CRUD OPERATIONS ====================
