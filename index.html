@@ -571,10 +571,29 @@
           </div>
         </div>
         
-        <!-- Existing Theses -->
+        <!-- High Conviction Plays -->
+        <div class="card" style="margin-bottom: 20px;">
+          <div class="card-header">
+            <span class="card-title">🎯 High Conviction Plays</span>
+            <button class="btn btn-ask" onclick="runConvictionAnalysis()" id="convictionBtn">
+              🔥 Generate Picks
+            </button>
+          </div>
+          <div id="convictionAnalysis">
+            <div class="note-card" id="convictionCard" style="display: none;">
+              <div class="note-meta">
+                <span id="convictionTimestamp"></span>
+              </div>
+              <div class="analysis-content" id="convictionText"></div>
+            </div>
+            <p id="noConvictionMsg" style="color:#8b949e;">Click "Generate Picks" for AI-ranked highest conviction stocks for 1yr, 3yr, and 5yr returns based on the Investment Framework above.</p>
+          </div>
+        </div>
+        
+        <!-- Manual Theses -->
         <div class="card">
           <div class="card-header">
-            <span class="card-title">📝 My Investment Theses</span>
+            <span class="card-title">📝 My Notes</span>
             <button class="btn btn-primary" onclick="openModal('thesisModal')">+ Add</button>
           </div>
           <div class="grid-2" id="thesesGrid"></div>
@@ -1323,6 +1342,9 @@
         
         // Load investment framework
         loadFramework();
+        
+        // Load high conviction plays
+        loadConviction();
         
         // Fetch live prices in background after initial render
         fetchLivePrices();
@@ -2293,6 +2315,101 @@
       
       btn.disabled = false;
       btn.innerHTML = '🚀 Run Framework';
+    }
+    
+    // ==================== HIGH CONVICTION PLAYS ====================
+    let storedConviction = JSON.parse(localStorage.getItem('pinky-conviction') || 'null');
+    
+    function renderConviction() {
+      const card = document.getElementById('convictionCard');
+      const text = document.getElementById('convictionText');
+      const timestamp = document.getElementById('convictionTimestamp');
+      const noMsg = document.getElementById('noConvictionMsg');
+      
+      if (storedConviction && storedConviction.text) {
+        card.style.display = 'block';
+        noMsg.style.display = 'none';
+        text.innerHTML = formatAnalysisText(storedConviction.text);
+        timestamp.textContent = formatDate(storedConviction.timestamp);
+      } else {
+        card.style.display = 'none';
+        noMsg.style.display = 'block';
+      }
+    }
+    
+    async function loadConviction() {
+      if (supabaseClient) {
+        try {
+          const { data: convictions } = await supabaseClient
+            .from('ai_recommendations')
+            .select('*')
+            .eq('type', 'conviction')
+            .order('created_at', { ascending: false })
+            .limit(1);
+          
+          if (convictions && convictions.length > 0) {
+            storedConviction = { text: convictions[0].content, timestamp: convictions[0].created_at };
+            localStorage.setItem('pinky-conviction', JSON.stringify(storedConviction));
+          }
+        } catch (e) {
+          console.log('Could not load conviction from Supabase:', e);
+        }
+      }
+      renderConviction();
+    }
+    
+    async function runConvictionAnalysis() {
+      const btn = document.getElementById('convictionBtn');
+      const card = document.getElementById('convictionCard');
+      const text = document.getElementById('convictionText');
+      const timestamp = document.getElementById('convictionTimestamp');
+      const noMsg = document.getElementById('noConvictionMsg');
+      
+      btn.disabled = true;
+      btn.innerHTML = '⏳ Generating Picks...';
+      card.style.display = 'block';
+      noMsg.style.display = 'none';
+      text.textContent = 'Analyzing markets and generating high conviction picks (this may take 30-60 seconds)...';
+      timestamp.textContent = 'Loading...';
+      
+      try {
+        const response = await fetch('/api/recommend', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'conviction' })
+        });
+        
+        const result = await response.json();
+        
+        if (result.error) {
+          text.textContent = `❌ Error: ${result.error}`;
+        } else {
+          storedConviction = { text: result.analysis, timestamp: result.timestamp || new Date().toISOString() };
+          localStorage.setItem('pinky-conviction', JSON.stringify(storedConviction));
+          
+          if (supabaseClient) {
+            try {
+              await supabaseClient.from('ai_recommendations').delete().eq('type', 'conviction');
+              await supabaseClient.from('ai_recommendations').insert({
+                type: 'conviction',
+                content: result.analysis,
+                created_at: storedConviction.timestamp
+              });
+            } catch (e) {
+              console.log('Could not save conviction to Supabase:', e);
+            }
+          }
+          
+          renderConviction();
+        }
+        
+      } catch (error) {
+        console.error('Conviction error:', error);
+        text.textContent = `❌ Error: ${error.message}. Try again later.`;
+      }
+      
+      btn.disabled = false;
+      btn.innerHTML = '🔥 Generate Picks';
     }
     
     // ==================== CRUD OPERATIONS ====================

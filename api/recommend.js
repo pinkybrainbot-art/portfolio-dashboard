@@ -33,7 +33,63 @@ export default async function handler(req, res) {
     let prompt;
     let maxTokens = 1200;
     
-    if (type === 'framework') {
+    if (type === 'conviction') {
+      maxTokens = 2500;
+      prompt = `You are an elite stock picker with a track record of identifying multi-bagger opportunities.
+
+Based on current macro conditions, market positioning, and fundamental analysis, provide your HIGHEST CONVICTION stock picks for the best returns.
+
+For each time horizon, list exactly 5 stocks ranked from #1 (highest conviction) to #5.
+
+**🔥 1-YEAR HIGH CONVICTION PICKS (2026-2027)**
+
+| Rank | Ticker | Company | Why It's #1-5 | Target Return |
+|------|--------|---------|---------------|---------------|
+| 1 | | | | |
+| 2 | | | | |
+| 3 | | | | |
+| 4 | | | | |
+| 5 | | | | |
+
+For each pick, briefly explain:
+- The catalyst that will drive returns
+- Key risk to the thesis
+
+**🚀 3-YEAR HIGH CONVICTION PICKS (2026-2029)**
+
+| Rank | Ticker | Company | Why It's #1-5 | Target Return |
+|------|--------|---------|---------------|---------------|
+| 1 | | | | |
+| 2 | | | | |
+| 3 | | | | |
+| 4 | | | | |
+| 5 | | | | |
+
+For each pick, briefly explain:
+- The structural trend it captures
+- What would invalidate the thesis
+
+**💎 5-YEAR HIGH CONVICTION PICKS (2026-2031)**
+
+| Rank | Ticker | Company | Why It's #1-5 | Target Return |
+|------|--------|---------|---------------|---------------|
+| 1 | | | | |
+| 2 | | | | |
+| 3 | | | | |
+| 4 | | | | |
+| 5 | | | | |
+
+For each pick, briefly explain:
+- The mega-trend or transformation thesis
+- Why this company wins vs competitors
+
+**⚡ CONVICTION SUMMARY**
+- Highest conviction single pick across all timeframes
+- One pick that appears in multiple timeframes (compounding conviction)
+- The contrarian pick that most people would dismiss
+
+Be specific with target returns (e.g., "150-200% upside"). Focus on asymmetric risk/reward. These should be actionable, not generic.`;
+    } else if (type === 'framework') {
       maxTokens = 4000;
       prompt = `You are a world-class macro strategist and portfolio architect. Assume I have no predefined asset, sector, or thesis.
 
