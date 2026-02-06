@@ -459,6 +459,45 @@
       
       <!-- Holdings Tab -->
       <div class="tab-content" id="holdings">
+        <!-- AI Analysis Boxes -->
+        <div class="grid-2" style="margin-bottom: 20px;">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">🚀 High Risk/Reward Plays</span>
+              <button class="btn btn-ask" onclick="getAIRecommendations('highRisk')" id="highRiskBtn">
+                🎲 Get Ideas
+              </button>
+            </div>
+            <div id="highRiskAnalysis">
+              <div class="note-card" id="highRiskCard" style="display: none;">
+                <div class="note-meta">
+                  <span id="highRiskTimestamp"></span>
+                </div>
+                <div class="analysis-content" id="highRiskText"></div>
+              </div>
+              <p id="noHighRiskMsg" style="color:#8b949e;">Click "Get Ideas" for short-term high risk/reward stock recommendations.</p>
+            </div>
+          </div>
+          
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">⚖️ Portfolio Rebalance</span>
+              <button class="btn btn-ask" onclick="getAIRecommendations('rebalance')" id="rebalanceBtn">
+                🔄 Analyze
+              </button>
+            </div>
+            <div id="rebalanceAnalysis">
+              <div class="note-card" id="rebalanceCard" style="display: none;">
+                <div class="note-meta">
+                  <span id="rebalanceTimestamp"></span>
+                </div>
+                <div class="analysis-content" id="rebalanceText"></div>
+              </div>
+              <p id="noRebalanceMsg" style="color:#8b949e;">Click "Analyze" for AI recommendations on what to sell and where to add exposure.</p>
+            </div>
+          </div>
+        </div>
+        
         <div class="card">
           <div class="card-header">
             <span class="card-title">📈 Stocks</span>
@@ -1253,6 +1292,9 @@
         // Load latest Pinky analysis
         loadLatestAnalysis();
         
+        // Load AI recommendations
+        loadRecommendations();
+        
         // Fetch live prices in background after initial render
         fetchLivePrices();
       } catch (e) {
@@ -2007,6 +2049,123 @@
       
       btn.disabled = false;
       btn.innerHTML = type === 'macro' ? '🔮 Analyze Market & Portfolio' : '🔮 Quick Analysis';
+    }
+    
+    // ==================== AI RECOMMENDATIONS (Holdings Page) ====================
+    let storedRecommendations = {
+      highRisk: JSON.parse(localStorage.getItem('pinky-high-risk') || 'null'),
+      rebalance: JSON.parse(localStorage.getItem('pinky-rebalance') || 'null')
+    };
+    
+    function renderRecommendation(type) {
+      const data = storedRecommendations[type];
+      const card = document.getElementById(type === 'highRisk' ? 'highRiskCard' : 'rebalanceCard');
+      const text = document.getElementById(type === 'highRisk' ? 'highRiskText' : 'rebalanceText');
+      const timestamp = document.getElementById(type === 'highRisk' ? 'highRiskTimestamp' : 'rebalanceTimestamp');
+      const noMsg = document.getElementById(type === 'highRisk' ? 'noHighRiskMsg' : 'noRebalanceMsg');
+      
+      if (data && data.text) {
+        card.style.display = 'block';
+        noMsg.style.display = 'none';
+        text.innerHTML = formatAnalysisText(data.text);
+        timestamp.textContent = formatDate(data.timestamp);
+      } else {
+        card.style.display = 'none';
+        noMsg.style.display = 'block';
+      }
+    }
+    
+    async function loadRecommendations() {
+      // Try to load from Supabase
+      if (supabaseClient) {
+        try {
+          const { data: recs } = await supabaseClient
+            .from('ai_recommendations')
+            .select('*')
+            .order('created_at', { ascending: false });
+          
+          if (recs) {
+            recs.forEach(r => {
+              if (r.type === 'highRisk' || r.type === 'rebalance') {
+                storedRecommendations[r.type] = { text: r.content, timestamp: r.created_at };
+                localStorage.setItem(`pinky-${r.type === 'highRisk' ? 'high-risk' : 'rebalance'}`, 
+                  JSON.stringify(storedRecommendations[r.type]));
+              }
+            });
+          }
+        } catch (e) {
+          console.log('Could not load recommendations from Supabase:', e);
+        }
+      }
+      renderRecommendation('highRisk');
+      renderRecommendation('rebalance');
+    }
+    
+    async function saveRecommendation(type, text, timestamp) {
+      storedRecommendations[type] = { text, timestamp };
+      localStorage.setItem(`pinky-${type === 'highRisk' ? 'high-risk' : 'rebalance'}`, 
+        JSON.stringify(storedRecommendations[type]));
+      
+      if (supabaseClient) {
+        try {
+          await supabaseClient.from('ai_recommendations').delete().eq('type', type);
+          await supabaseClient.from('ai_recommendations').insert({
+            type,
+            content: text,
+            created_at: timestamp
+          });
+        } catch (e) {
+          console.log('Could not save recommendation to Supabase:', e);
+        }
+      }
+      
+      renderRecommendation(type);
+    }
+    
+    async function getAIRecommendations(type) {
+      const btn = document.getElementById(type === 'highRisk' ? 'highRiskBtn' : 'rebalanceBtn');
+      const card = document.getElementById(type === 'highRisk' ? 'highRiskCard' : 'rebalanceCard');
+      const text = document.getElementById(type === 'highRisk' ? 'highRiskText' : 'rebalanceText');
+      const timestamp = document.getElementById(type === 'highRisk' ? 'highRiskTimestamp' : 'rebalanceTimestamp');
+      const noMsg = document.getElementById(type === 'highRisk' ? 'noHighRiskMsg' : 'noRebalanceMsg');
+      
+      btn.disabled = true;
+      btn.innerHTML = '⏳ Analyzing...';
+      card.style.display = 'block';
+      noMsg.style.display = 'none';
+      text.textContent = type === 'highRisk' ? 'Finding high risk/reward opportunities...' : 'Analyzing portfolio for rebalancing...';
+      timestamp.textContent = 'Loading...';
+      
+      try {
+        const { stocksValue, cryptoValue, totalValue } = calculateTotals();
+        
+        const response = await fetch('/api/recommend', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            holdings: data.holdings,
+            totalValue,
+            stocksValue,
+            cryptoValue,
+            type
+          })
+        });
+        
+        const result = await response.json();
+        
+        if (result.error) {
+          text.textContent = `❌ Error: ${result.error}`;
+        } else {
+          await saveRecommendation(type, result.analysis, result.timestamp || new Date().toISOString());
+        }
+        
+      } catch (error) {
+        console.error('Recommendation error:', error);
+        text.textContent = `❌ Error: ${error.message}. Try again later.`;
+      }
+      
+      btn.disabled = false;
+      btn.innerHTML = type === 'highRisk' ? '🎲 Get Ideas' : '🔄 Analyze';
     }
     
     // ==================== CRUD OPERATIONS ====================
