@@ -1507,11 +1507,17 @@
       `).join('') || '<p style="color:#8b949e;">Watchlist empty.</p>';
       
       // Notes
-      document.getElementById('notesList').innerHTML = data.notes.map(n => `
+      document.getElementById('notesList').innerHTML = data.notes.map((n, idx) => `
         <div class="note-card">
-          <div class="note-meta">
-            <span class="note-author">${n.author === 'pinky' ? '🧠 Pinky' : '👤 Chris'}</span>
-            <span>${formatDate(n.date)}</span>
+          <div class="note-meta" style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <span class="note-author">${n.author === 'pinky' ? '🧠 Pinky' : '👤 Chris'}</span>
+              <span>${formatDate(n.date)}</span>
+            </div>
+            <div style="display: flex; gap: 5px;">
+              <button class="btn btn-secondary" onclick="editNote(${idx})" title="Edit" style="padding: 4px 8px;">✏️</button>
+              <button class="btn btn-secondary" onclick="deleteNote(${idx})" title="Delete" style="padding: 4px 8px;">×</button>
+            </div>
           </div>
           <div class="note-text">${n.text}</div>
           ${n.tags?.length ? `<div class="note-tags">${n.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>` : ''}
@@ -2070,6 +2076,8 @@
       render();
     }
     
+    let editingNoteIdx = null;
+    
     async function saveNote() {
       const author = document.getElementById('noteAuthor').value;
       const text = document.getElementById('noteText').value;
@@ -2077,17 +2085,52 @@
       
       if (!text) return alert('Note text required');
       
-      const note = { date: new Date().toISOString().split('T')[0], author, text, tags };
-      data.notes.unshift(note);
-      
-      if (supabaseClient) {
-        await supabaseClient.from('notes').insert({ author, content: text, tags });
+      if (editingNoteIdx !== null) {
+        // Update existing note
+        const oldNote = data.notes[editingNoteIdx];
+        data.notes[editingNoteIdx] = { ...oldNote, author, text, tags };
+        
+        if (supabaseClient && oldNote.id) {
+          await supabaseClient.from('notes').update({ author, content: text, tags }).eq('id', oldNote.id);
+        }
+        editingNoteIdx = null;
+      } else {
+        // Add new note
+        const note = { date: new Date().toISOString().split('T')[0], author, text, tags };
+        data.notes.unshift(note);
+        
+        if (supabaseClient) {
+          await supabaseClient.from('notes').insert({ author, content: text, tags });
+        }
       }
       
       saveLocal();
       render();
       closeModal('noteModal');
       clearForm('note');
+    }
+    
+    function editNote(idx) {
+      const n = data.notes[idx];
+      if (!n) return;
+      editingNoteIdx = idx;
+      document.getElementById('noteAuthor').value = n.author || 'chris';
+      document.getElementById('noteText').value = n.text || '';
+      document.getElementById('noteTags').value = (n.tags || []).join(', ');
+      openModal('noteModal');
+    }
+    
+    async function deleteNote(idx) {
+      const n = data.notes[idx];
+      if (!n || !confirm('Delete this note?')) return;
+      
+      if (supabaseClient && n.id) {
+        await supabaseClient.from('notes').delete().eq('id', n.id);
+      }
+      
+      data.notes.splice(idx, 1);
+      saveLocal();
+      render();
     }
     
     let editingTransactionIdx = null;
