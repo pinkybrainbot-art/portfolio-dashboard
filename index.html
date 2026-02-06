@@ -380,7 +380,6 @@
         <button class="nav-tab" data-tab="theses">Frameworks</button>
         <button class="nav-tab" data-tab="transactions">Log</button>
         <button class="nav-tab" data-tab="watchlist">Watchlist</button>
-        <button class="nav-tab" data-tab="macro">Macro</button>
         <button class="nav-tab" data-tab="notes">Notes</button>
       </div>
     </nav>
@@ -590,14 +589,6 @@
           </div>
         </div>
         
-        <!-- Manual Theses -->
-        <div class="card">
-          <div class="card-header">
-            <span class="card-title">📝 My Notes</span>
-            <button class="btn btn-primary" onclick="openModal('thesisModal')">+ Add</button>
-          </div>
-          <div class="grid-2" id="thesesGrid"></div>
-        </div>
       </div>
       
       <!-- Transactions Tab -->
@@ -1775,13 +1766,17 @@
       `).join('') || '<p style="color:#8b949e;">No transactions logged.</p>';
       
       // Watchlist
-      document.getElementById('watchlistItems').innerHTML = data.watchlist.map(w => `
+      document.getElementById('watchlistItems').innerHTML = data.watchlist.map((w, idx) => `
         <div class="watchlist-item">
           <div>
             <div class="watchlist-ticker">${w.symbol}</div>
             <div class="watchlist-note">${w.notes || ''}</div>
           </div>
-          ${w.target ? `<div style="color:#8b949e;">Target: $${w.target}</div>` : ''}
+          <div style="display: flex; align-items: center; gap: 10px;">
+            ${w.target ? `<span style="color:#8b949e;">Target: $${w.target}</span>` : ''}
+            <button class="btn btn-secondary" onclick="editWatchlistItem(${idx})" title="Edit">✏️</button>
+            <button class="btn btn-secondary" onclick="deleteWatchlistItem(${idx})" title="Delete">×</button>
+          </div>
         </div>
       `).join('') || '<p style="color:#8b949e;">Watchlist empty.</p>';
       
@@ -2567,6 +2562,8 @@
       clearForm('transaction');
     }
     
+    let editingWatchlistIdx = null;
+    
     async function saveWatchlist() {
       const symbol = document.getElementById('watchSymbol').value.toUpperCase();
       const notes = document.getElementById('watchNotes').value;
@@ -2574,16 +2571,52 @@
       
       if (!symbol) return alert('Symbol required');
       
-      data.watchlist.push({ symbol, notes, target });
-      
-      if (supabaseClient) {
-        await supabaseClient.from('watchlist').insert({ symbol, notes, target_entry: target });
+      if (editingWatchlistIdx !== null) {
+        // Update existing
+        const oldSymbol = data.watchlist[editingWatchlistIdx].symbol;
+        data.watchlist[editingWatchlistIdx] = { symbol, notes, target };
+        
+        if (supabaseClient) {
+          await supabaseClient.from('watchlist').delete().eq('symbol', oldSymbol);
+          await supabaseClient.from('watchlist').insert({ symbol, notes, target_entry: target });
+        }
+        editingWatchlistIdx = null;
+      } else {
+        // Add new
+        data.watchlist.push({ symbol, notes, target });
+        
+        if (supabaseClient) {
+          await supabaseClient.from('watchlist').insert({ symbol, notes, target_entry: target });
+        }
       }
       
       saveLocal();
       render();
       closeModal('watchlistModal');
       clearForm('watchlist');
+    }
+    
+    function editWatchlistItem(idx) {
+      const w = data.watchlist[idx];
+      if (!w) return;
+      editingWatchlistIdx = idx;
+      document.getElementById('watchSymbol').value = w.symbol;
+      document.getElementById('watchNotes').value = w.notes || '';
+      document.getElementById('watchTarget').value = w.target || '';
+      openModal('watchlistModal');
+    }
+    
+    async function deleteWatchlistItem(idx) {
+      const w = data.watchlist[idx];
+      if (!w || !confirm(`Remove ${w.symbol} from watchlist?`)) return;
+      
+      if (supabaseClient) {
+        await supabaseClient.from('watchlist').delete().eq('symbol', w.symbol);
+      }
+      
+      data.watchlist.splice(idx, 1);
+      saveLocal();
+      render();
     }
     
     async function saveThesis() {
