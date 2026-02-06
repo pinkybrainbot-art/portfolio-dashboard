@@ -436,9 +436,14 @@
                 🔮 Quick Analysis
               </button>
             </div>
-            <div id="pinkyNotes"></div>
-            <div class="ask-response" id="quickResponse">
-              <div class="ask-response-text" id="quickResponseText"></div>
+            <div id="pinkyAnalysis">
+              <div class="note-card" id="latestAnalysisCard" style="display: none;">
+                <div class="note-meta">
+                  <span id="analysisTimestamp"></span>
+                </div>
+                <div class="note-text" id="latestAnalysisText"></div>
+              </div>
+              <p id="noAnalysisMsg" style="color:#8b949e;">No recent analysis. Click "Quick Analysis" for insights on your top 5 holdings.</p>
             </div>
           </div>
         </div>
@@ -1237,6 +1242,9 @@
         render();
         console.log('✅ Render complete');
         
+        // Load latest Pinky analysis
+        loadLatestAnalysis();
+        
         // Fetch live prices in background after initial render
         fetchLivePrices();
       } catch (e) {
@@ -1600,14 +1608,8 @@
         </div>
       `).join('');
       
-      // Pinky's notes
-      const pinkyNotes = data.notes.filter(n => n.author === 'pinky').slice(0, 2);
-      document.getElementById('pinkyNotes').innerHTML = pinkyNotes.map(n => `
-        <div class="note-card">
-          <div class="note-meta"><span>${formatDate(n.date)}</span></div>
-          <div class="note-text">${n.text}</div>
-        </div>
-      `).join('') || '<p style="color:#8b949e;">No recent thoughts. Click "Quick Analysis" for insights.</p>';
+      // Pinky's latest analysis
+      renderLatestAnalysis();
       
       // Holdings tables - split by type
       const stocks = data.holdings.filter(h => h.type === 'stock').sort((a, b) => (b.shares * b.price) - (a.shares * a.price));
@@ -1813,15 +1815,98 @@
     }
     
     // ==================== ASK PINKY ====================
+    // Store the latest analysis locally and in Supabase
+    let latestAnalysis = JSON.parse(localStorage.getItem('pinky-latest-analysis') || 'null');
+    
+    function renderLatestAnalysis() {
+      const card = document.getElementById('latestAnalysisCard');
+      const text = document.getElementById('latestAnalysisText');
+      const timestamp = document.getElementById('analysisTimestamp');
+      const noMsg = document.getElementById('noAnalysisMsg');
+      
+      if (latestAnalysis && latestAnalysis.text) {
+        card.style.display = 'block';
+        noMsg.style.display = 'none';
+        text.textContent = latestAnalysis.text;
+        timestamp.textContent = formatDate(latestAnalysis.timestamp);
+      } else {
+        card.style.display = 'none';
+        noMsg.style.display = 'block';
+      }
+    }
+    
+    async function loadLatestAnalysis() {
+      // Try to load from Supabase first
+      if (supabaseClient) {
+        try {
+          const { data: analyses } = await supabaseClient
+            .from('pinky_analysis')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(1);
+          
+          if (analyses && analyses.length > 0) {
+            latestAnalysis = {
+              text: analyses[0].content,
+              timestamp: analyses[0].created_at
+            };
+            localStorage.setItem('pinky-latest-analysis', JSON.stringify(latestAnalysis));
+          }
+        } catch (e) {
+          console.log('Could not load analysis from Supabase:', e);
+        }
+      }
+      renderLatestAnalysis();
+    }
+    
+    async function saveAnalysis(text, timestamp) {
+      latestAnalysis = { text, timestamp };
+      localStorage.setItem('pinky-latest-analysis', JSON.stringify(latestAnalysis));
+      
+      // Save to Supabase (overwrite by deleting old and inserting new)
+      if (supabaseClient) {
+        try {
+          // Delete all old analyses
+          await supabaseClient.from('pinky_analysis').delete().neq('id', 0);
+          // Insert new one
+          await supabaseClient.from('pinky_analysis').insert({
+            content: text,
+            created_at: timestamp
+          });
+        } catch (e) {
+          console.log('Could not save analysis to Supabase:', e);
+        }
+      }
+      
+      renderLatestAnalysis();
+    }
+    
     async function askPinky(type) {
       const btn = document.getElementById(type === 'macro' ? 'askMacroBtn' : 'askQuickBtn');
-      const responseDiv = document.getElementById(type === 'macro' ? 'macroResponse' : 'quickResponse');
-      const responseText = document.getElementById(type === 'macro' ? 'macroResponseText' : 'quickResponseText');
+      
+      // For quick analysis, show loading in the card
+      if (type === 'quick') {
+        const card = document.getElementById('latestAnalysisCard');
+        const text = document.getElementById('latestAnalysisText');
+        const timestamp = document.getElementById('analysisTimestamp');
+        const noMsg = document.getElementById('noAnalysisMsg');
+        
+        card.style.display = 'block';
+        noMsg.style.display = 'none';
+        text.textContent = 'Analyzing your top 5 holdings...';
+        timestamp.textContent = 'Loading...';
+      }
+      
+      // For macro, use the old response div
+      const responseDiv = document.getElementById('macroResponse');
+      const responseText = document.getElementById('macroResponseText');
+      if (type === 'macro') {
+        responseDiv.classList.add('active');
+        responseText.textContent = 'Analyzing market conditions...';
+      }
       
       btn.disabled = true;
       btn.innerHTML = '⏳ Analyzing...';
-      responseDiv.classList.add('active');
-      responseText.textContent = 'Analyzing your portfolio...';
       
       try {
         // Build context
@@ -1843,14 +1928,28 @@
         const result = await response.json();
         
         if (result.error) {
-          responseText.textContent = `❌ Error: ${result.error}`;
+          if (type === 'quick') {
+            document.getElementById('latestAnalysisText').textContent = `❌ Error: ${result.error}`;
+          } else {
+            responseText.textContent = `❌ Error: ${result.error}`;
+          }
         } else {
-          responseText.textContent = result.analysis;
+          if (type === 'quick') {
+            // Save and display the new analysis
+            await saveAnalysis(result.analysis, result.timestamp || new Date().toISOString());
+          } else {
+            responseText.textContent = result.analysis;
+          }
         }
         
       } catch (error) {
         console.error('Analysis error:', error);
-        responseText.textContent = `❌ Error: ${error.message}. Try again later.`;
+        const errorMsg = `❌ Error: ${error.message}. Try again later.`;
+        if (type === 'quick') {
+          document.getElementById('latestAnalysisText').textContent = errorMsg;
+        } else {
+          responseText.textContent = errorMsg;
+        }
       }
       
       btn.disabled = false;

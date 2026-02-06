@@ -141,3 +141,16 @@ CREATE TRIGGER prices_updated_at BEFORE UPDATE ON prices FOR EACH ROW EXECUTE FU
 CREATE TRIGGER theses_updated_at BEFORE UPDATE ON theses FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER macro_updated_at BEFORE UPDATE ON macro_indicators FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER settings_updated_at BEFORE UPDATE ON settings FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+-- Pinky Analysis Table (stores latest analysis only)
+CREATE TABLE IF NOT EXISTS pinky_analysis (
+  id SERIAL PRIMARY KEY,
+  content TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Enable RLS
+ALTER TABLE pinky_analysis ENABLE ROW LEVEL SECURITY;
+
+-- Allow public access (same as other tables)
+CREATE POLICY "Allow public access" ON pinky_analysis FOR ALL USING (true);
