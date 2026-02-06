@@ -459,45 +459,6 @@
       
       <!-- Holdings Tab -->
       <div class="tab-content" id="holdings">
-        <!-- AI Analysis Boxes -->
-        <div class="grid-2" style="margin-bottom: 20px;">
-          <div class="card">
-            <div class="card-header">
-              <span class="card-title">🚀 High Risk/Reward Plays</span>
-              <button class="btn btn-ask" onclick="getAIRecommendations('highRisk')" id="highRiskBtn">
-                🎲 Get Ideas
-              </button>
-            </div>
-            <div id="highRiskAnalysis">
-              <div class="note-card" id="highRiskCard" style="display: none;">
-                <div class="note-meta">
-                  <span id="highRiskTimestamp"></span>
-                </div>
-                <div class="analysis-content" id="highRiskText"></div>
-              </div>
-              <p id="noHighRiskMsg" style="color:#8b949e;">Click "Get Ideas" for short-term high risk/reward stock recommendations.</p>
-            </div>
-          </div>
-          
-          <div class="card">
-            <div class="card-header">
-              <span class="card-title">⚖️ Portfolio Rebalance</span>
-              <button class="btn btn-ask" onclick="getAIRecommendations('rebalance')" id="rebalanceBtn">
-                🔄 Analyze
-              </button>
-            </div>
-            <div id="rebalanceAnalysis">
-              <div class="note-card" id="rebalanceCard" style="display: none;">
-                <div class="note-meta">
-                  <span id="rebalanceTimestamp"></span>
-                </div>
-                <div class="analysis-content" id="rebalanceText"></div>
-              </div>
-              <p id="noRebalanceMsg" style="color:#8b949e;">Click "Analyze" for AI recommendations on what to sell and where to add exposure.</p>
-            </div>
-          </div>
-        </div>
-        
         <div class="card">
           <div class="card-header">
             <span class="card-title">📈 Stocks</span>
@@ -540,6 +501,45 @@
               </thead>
               <tbody id="cryptoTable"></tbody>
             </table>
+          </div>
+        </div>
+        
+        <!-- AI Analysis Boxes -->
+        <div class="grid-2" style="margin-top: 20px;">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">🚀 High Risk/Reward Plays</span>
+              <button class="btn btn-ask" onclick="getAIRecommendations('highRisk')" id="highRiskBtn">
+                🎲 Get Ideas
+              </button>
+            </div>
+            <div id="highRiskAnalysis">
+              <div class="note-card" id="highRiskCard" style="display: none;">
+                <div class="note-meta">
+                  <span id="highRiskTimestamp"></span>
+                </div>
+                <div class="analysis-content" id="highRiskText"></div>
+              </div>
+              <p id="noHighRiskMsg" style="color:#8b949e;">Click "Get Ideas" for short-term high risk/reward stock recommendations.</p>
+            </div>
+          </div>
+          
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">⚖️ Portfolio Rebalance</span>
+              <button class="btn btn-ask" onclick="getAIRecommendations('rebalance')" id="rebalanceBtn">
+                🔄 Analyze
+              </button>
+            </div>
+            <div id="rebalanceAnalysis">
+              <div class="note-card" id="rebalanceCard" style="display: none;">
+                <div class="note-meta">
+                  <span id="rebalanceTimestamp"></span>
+                </div>
+                <div class="analysis-content" id="rebalanceText"></div>
+              </div>
+              <p id="noRebalanceMsg" style="color:#8b949e;">Click "Analyze" for AI recommendations on what to sell and where to add exposure.</p>
+            </div>
           </div>
         </div>
       </div>
