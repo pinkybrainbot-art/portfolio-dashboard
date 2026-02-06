@@ -1172,22 +1172,13 @@
       return null;
     }
     
-    function updateIndicator(arr, id, value, trend) {
-      const item = arr?.find(i => i.id === id);
-      if (item && value !== null) {
-        item.value = value;
-        if (trend) item.trend = trend;
-      }
-    }
-    
     async function fetchLivePrices() {
-      console.log('📡 Fetching live data...');
+      console.log('📡 Fetching live portfolio prices...');
       
       try {
-        // === PORTFOLIO PRICES ===
         // Crypto from CoinGecko
         const cryptoIds = { 'BTC': 'bitcoin', 'SOL': 'solana', 'ETH': 'ethereum' };
-        const cryptoRes = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,solana,ethereum&vs_currencies=usd&include_market_cap=true');
+        const cryptoRes = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,solana,ethereum&vs_currencies=usd');
         if (cryptoRes.ok) {
           const cryptoData = await cryptoRes.json();
           data.holdings.forEach(h => {
@@ -1197,27 +1188,6 @@
               console.log(`✅ ${h.symbol}: $${h.price}`);
             }
           });
-        }
-        
-        // BTC dominance from CoinGecko
-        const globalRes = await fetch('https://api.coingecko.com/api/v3/global');
-        if (globalRes.ok) {
-          const globalData = await globalRes.json();
-          const btcDom = globalData?.data?.market_cap_percentage?.btc;
-          if (btcDom) {
-            updateIndicator(data.globalIndicators, 'btc-dom', btcDom.toFixed(1) + '%', btcDom > 55 ? 'up' : 'down');
-          }
-        }
-        
-        // Crypto Fear & Greed
-        const fgRes = await fetch('https://api.alternative.me/fng/?limit=1');
-        if (fgRes.ok) {
-          const fgData = await fgRes.json();
-          const fgValue = fgData?.data?.[0]?.value;
-          if (fgValue) {
-            const trend = fgValue < 25 ? 'down' : fgValue > 60 ? 'up' : 'neutral';
-            updateIndicator(data.sentimentIndicators, 'fear-greed', fgValue, trend);
-          }
         }
         
         // Stock prices from Yahoo
@@ -1230,45 +1200,6 @@
               holding.price = price;
               console.log(`✅ ${symbol}: $${price}`);
             }
-          }
-        }
-        
-        // === MACRO DATA FROM YAHOO ===
-        const macroSymbols = {
-          '^VIX': { arr: 'volIndicators', id: 'vix', format: v => v.toFixed(1) },
-          '^VIX9D': { arr: 'volIndicators', id: 'vix9d', format: v => v.toFixed(1) },
-          '^VVIX': { arr: 'volIndicators', id: 'vvix', format: v => v.toFixed(0) },
-          'DX-Y.NYB': { arr: 'globalIndicators', id: 'dxy', format: v => v.toFixed(1) },
-          '^TNX': { arr: 'ratesIndicators', id: '10y', format: v => v.toFixed(2) + '%' },
-          '^IRX': { arr: 'ratesIndicators', id: '2y', format: v => v.toFixed(2) + '%' },
-          '^GSPC': { arr: 'macroIndicators', id: 'spx', format: v => v.toLocaleString('en-US', {maximumFractionDigits: 0}) },
-          'CL=F': { arr: 'inflationIndicators', id: 'oil', format: v => '$' + v.toFixed(0) },
-          'GC=F': { arr: 'globalIndicators', id: 'gold', format: v => '$' + v.toFixed(0) },
-          'USDCNY=X': { arr: 'globalIndicators', id: 'usd-cny', format: v => v.toFixed(2) },
-          'HYG': { arr: 'creditIndicators', id: 'hyg', format: v => v.toFixed(2) },
-          'LQD': { arr: 'creditIndicators', id: 'lqd', format: v => v.toFixed(2) },
-        };
-        
-        console.log('📊 Fetching macro indicators...');
-        for (const [symbol, config] of Object.entries(macroSymbols)) {
-          const price = await fetchYahooQuote(symbol);
-          if (price && data[config.arr]) {
-            const formatted = config.format(price);
-            updateIndicator(data[config.arr], config.id, formatted);
-            console.log(`✅ ${symbol}: ${formatted}`);
-          }
-        }
-        
-        // Calculate VIX term structure
-        const vix = data.volIndicators?.find(i => i.id === 'vix');
-        const vix9d = data.volIndicators?.find(i => i.id === 'vix9d');
-        if (vix && vix9d) {
-          const vixVal = parseFloat(vix.value);
-          const vix9dVal = parseFloat(vix9d.value);
-          const termStruct = data.volIndicators.find(i => i.id === 'vix-term');
-          if (termStruct && !isNaN(vixVal) && !isNaN(vix9dVal)) {
-            termStruct.value = vix9dVal < vixVal ? 'Contango' : 'Backwardation';
-            termStruct.trend = vix9dVal < vixVal ? 'up' : 'down';
           }
         }
         
