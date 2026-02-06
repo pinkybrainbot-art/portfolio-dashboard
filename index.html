@@ -631,6 +631,7 @@
                   <th>Company</th>
                   <th>Days Away</th>
                   <th>Status</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody id="earningsTable"></tbody>
@@ -2478,6 +2479,7 @@
             <td>${e.name}</td>
             <td>${e.daysAway !== null ? (e.daysAway < 0 ? 'Passed' : e.daysAway + ' days') : '-'}</td>
             <td class="${statusClass}">${statusText}</td>
+            <td><button class="btn btn-secondary" onclick="editEarningsDate('${e.symbol}')" style="padding: 4px 8px;">✏️</button></td>
           </tr>
         `;
       }).join('') || '<tr><td colspan="5" style="text-align:center;color:#8b949e;">No stock holdings</td></tr>';
@@ -2530,6 +2532,20 @@
       
       btn.disabled = false;
       btn.innerHTML = '🔄 Refresh Dates';
+    }
+    
+    function editEarningsDate(symbol) {
+      const currentDate = earningsData[symbol]?.date || '';
+      const newDate = prompt(`Enter earnings date for ${symbol} (YYYY-MM-DD):`, currentDate);
+      
+      if (newDate && /^\d{4}-\d{2}-\d{2}$/.test(newDate)) {
+        earningsData[symbol] = { date: newDate, time: 'TBD' };
+        localStorage.setItem('earnings-data', JSON.stringify(earningsData));
+        renderEarnings();
+        console.log(`✅ Updated ${symbol} earnings date to ${newDate}`);
+      } else if (newDate !== null) {
+        alert('Invalid date format. Use YYYY-MM-DD (e.g., 2026-02-15)');
+      }
     }
     
     // ==================== INIT ====================
