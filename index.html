@@ -440,9 +440,15 @@
           <div class="card">
             <div class="card-header">
               <span class="card-title">🧠 Pinky's Thoughts</span>
-              <button class="btn btn-ask" onclick="askPinky('quick')" id="askQuickBtn">
-                🔮 Quick Analysis
-              </button>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <select id="aiModelSelect" style="padding: 8px 12px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #c9d1d9; font-size: 0.85rem;">
+                  <option value="anthropic">Claude (Anthropic)</option>
+                  <option value="openai">GPT-4o (OpenAI)</option>
+                </select>
+                <button class="btn btn-ask" onclick="askPinky('quick')" id="askQuickBtn">
+                  🔮 Quick Analysis
+                </button>
+              </div>
             </div>
             <div id="pinkyAnalysis">
               <div class="note-card" id="latestAnalysisCard" style="display: none;">
@@ -2031,6 +2037,8 @@
         const { stocksValue, cryptoValue, totalValue } = calculateTotals();
         
         // Call the API endpoint
+        const selectedModel = document.getElementById('aiModelSelect')?.value || 'anthropic';
+        
         const response = await fetch('/api/analyze', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -2039,7 +2047,8 @@
             totalValue,
             stocksValue,
             cryptoValue,
-            type
+            type,
+            model: selectedModel
           })
         });
         

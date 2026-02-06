@@ -1,5 +1,5 @@
 // Vercel Serverless Function: /api/analyze
-// Calls OpenAI to analyze portfolio
+// Supports both OpenAI and Anthropic for portfolio analysis
 
 export default async function handler(req, res) {
   // Enable CORS
@@ -17,11 +17,17 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { holdings, totalValue, stocksValue, cryptoValue } = req.body;
+    const { holdings, totalValue, stocksValue, cryptoValue, model = 'anthropic' } = req.body;
     
     const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-    if (!OPENAI_API_KEY) {
-      return res.status(500).json({ error: 'API key not configured' });
+    const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+    
+    // Check for required API key based on model selection
+    if (model === 'openai' && !OPENAI_API_KEY) {
+      return res.status(500).json({ error: 'OpenAI API key not configured' });
+    }
+    if (model === 'anthropic' && !ANTHROPIC_API_KEY) {
+      return res.status(500).json({ error: 'Anthropic API key not configured' });
     }
 
     // Build portfolio summary - top 5 holdings only
@@ -64,31 +70,60 @@ Contrarian view, blind spots, non-obvious risks.
 
 Be specific to these 5 holdings. Use bullet points within each section.`;
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: 900,
-        temperature: 0.7,
-      }),
-    });
+    let analysis;
 
-    const data = await response.json();
-    
-    if (data.error) {
-      return res.status(500).json({ error: data.error.message });
+    if (model === 'anthropic') {
+      // Use Anthropic Claude
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': ANTHROPIC_API_KEY,
+          'Content-Type': 'application/json',
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1200,
+          messages: [{ role: 'user', content: prompt }],
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.error) {
+        return res.status(500).json({ error: data.error.message });
+      }
+
+      analysis = data.content?.[0]?.text || 'Analysis unavailable';
+    } else {
+      // Use OpenAI
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens: 1200,
+          temperature: 0.7,
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.error) {
+        return res.status(500).json({ error: data.error.message });
+      }
+
+      analysis = data.choices?.[0]?.message?.content || 'Analysis unavailable';
     }
-
-    const analysis = data.choices?.[0]?.message?.content || 'Analysis unavailable';
 
     return res.status(200).json({ 
       analysis, 
-      timestamp: new Date().toISOString() 
+      timestamp: new Date().toISOString(),
+      model: model === 'anthropic' ? 'Claude' : 'GPT-4o'
     });
 
   } catch (error) {
