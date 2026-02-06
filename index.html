@@ -2505,29 +2505,24 @@
       btn.innerHTML = '⏳ Fetching...';
       
       const stockHoldings = data.holdings.filter(h => h.type === 'stock');
+      const symbols = stockHoldings.map(h => h.symbol);
       
-      // Use Yahoo Finance earnings calendar via API
-      for (const h of stockHoldings) {
-        try {
-          const url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${h.symbol}?modules=calendarEvents`;
-          const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
-          
-          const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(5000) });
-          if (res.ok) {
-            const json = await res.json();
-            const earnings = json?.quoteSummary?.result?.[0]?.calendarEvents?.earnings;
-            if (earnings?.earningsDate?.[0]?.raw) {
-              const timestamp = earnings.earningsDate[0].raw * 1000;
-              earningsData[h.symbol] = {
-                date: new Date(timestamp).toISOString().split('T')[0],
-                time: earnings.earningsTime || 'TBD'
-              };
-              console.log(`✅ ${h.symbol}: ${earningsData[h.symbol].date}`);
-            }
+      try {
+        const res = await fetch('/api/earnings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ symbols })
+        });
+        
+        if (res.ok) {
+          const result = await res.json();
+          if (result.earnings) {
+            Object.assign(earningsData, result.earnings);
+            console.log('✅ Earnings data fetched:', Object.keys(result.earnings).length, 'symbols');
           }
-        } catch (e) {
-          console.log(`⚠️ Could not fetch earnings for ${h.symbol}`);
         }
+      } catch (e) {
+        console.error('❌ Error fetching earnings:', e);
       }
       
       localStorage.setItem('earnings-data', JSON.stringify(earningsData));
