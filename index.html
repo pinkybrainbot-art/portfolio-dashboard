@@ -1384,7 +1384,7 @@
             price: h.price,
             updated_at: new Date().toISOString()
           }));
-          await supabase.from('prices').upsert(updates, { onConflict: 'symbol' });
+          await supabaseClient.from('prices').upsert(updates, { onConflict: 'symbol' });
         }
         
         data.lastPriceUpdate = new Date().toISOString();
@@ -1544,18 +1544,6 @@
           <td><button class="btn btn-secondary" onclick="deleteHolding('${h.symbol}')">×</button></td>
         </tr>`;
       }).join('') || '<tr><td colspan="7" style="text-align:center;color:#8b949e;">No crypto</td></tr>';
-      
-      // Theses
-      document.getElementById('thesesGrid').innerHTML = data.theses.map(t => `
-        <div class="thesis-card">
-          <div class="thesis-header">
-            <span class="thesis-ticker">${t.symbol}</span>
-            <span class="thesis-conviction conviction-${t.conviction}">${t.conviction}</span>
-          </div>
-          <p class="thesis-text">${t.thesis}</p>
-          ${t.target ? `<p style="margin-top:10px;color:#8b949e;font-size:0.85rem;">Target: $${t.target}</p>` : ''}
-        </div>
-      `).join('') || '<p style="color:#8b949e;">No theses yet.</p>';
       
       // Transactions
       document.getElementById('transactionLog').innerHTML = data.transactions.map((t, idx) => `
