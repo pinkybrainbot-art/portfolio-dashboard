@@ -31,39 +31,38 @@ export default async function handler(req, res) {
       .map(h => `${h.symbol}: $${Math.round(h.shares * h.price).toLocaleString()} (${h.type})`)
       .join('\n');
 
-    const prompt = `You are a concise financial analyst. Analyze these TOP 5 HOLDINGS and provide a structured analysis.
+    const prompt = `You are a sharp financial analyst. Analyze these TOP 5 HOLDINGS with a structured breakdown.
 
 Portfolio: $${totalValue?.toLocaleString() || 'N/A'} total
-- Stocks: $${stocksValue?.toLocaleString() || 'N/A'}
+- Stocks: $${stocksValue?.toLocaleString() || 'N/A'}  
 - Crypto: $${cryptoValue?.toLocaleString() || 'N/A'}
 
 TOP 5 Holdings:
 ${topHoldings}
 
-Current market context (Feb 2026):
-- Trump tariffs causing market volatility
-- Tech/AI stocks under pressure
-- Crypto in pullback mode
-- Fed holding rates steady
+Current context (Feb 2026): Trump tariffs, tech/AI under pressure, crypto pullback, Fed holding rates.
 
-Format your response EXACTLY like this (use the headers):
+Provide analysis using EXACTLY these 6 sections (keep each section to 2-3 bullet points max):
 
-**📊 Week Review:**
-Brief 2-3 sentence summary of how these holdings performed this past week.
+**📊 1. What's Currently Moving the Price?**
+What macro/micro factors are driving these specific holdings right now?
 
-**⚠️ Current Factors:**
-List 2-3 specific current events/factors impacting these holdings right now (tariffs, regulatory news, sector rotation, etc.)
+**📰 2. What Recent News Has Already Broken?**
+Key news in the past week affecting these holdings.
 
-**📅 Upcoming Events:**
-List any known upcoming catalysts for these specific holdings (earnings dates, product launches, Fed meetings, etc.) in the next 2 weeks.
+**📅 3. What Short-Term Catalysts Are on the Horizon?**
+Upcoming earnings, events, announcements in the next 2 weeks.
 
-**🎯 Short-term Outlook:**
-1-2 sentence outlook for the next 1-2 weeks.
+**📈 4. What Technical or Quant Signals Are Relevant?**
+Key support/resistance levels, momentum, volume signals.
 
-**💡 Recommendation:**
-One specific, actionable recommendation.
+**🧠 5. How Is the Market Positioning?**
+Institutional flows, sentiment, crowded trades.
 
-Be concise but comprehensive. Focus specifically on these 5 holdings.`;
+**🎯 6. What Are the Risks That AI Might Be Missing?**
+Contrarian view, blind spots, non-obvious risks.
+
+Be specific to these 5 holdings. Use bullet points within each section.`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -74,7 +73,7 @@ Be concise but comprehensive. Focus specifically on these 5 holdings.`;
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 600,
+        max_tokens: 900,
         temperature: 0.7,
       }),
     });

@@ -271,15 +271,13 @@
     .ask-response.active { display: block; }
     .ask-response-text { white-space: pre-wrap; line-height: 1.6; }
     .analysis-content { line-height: 1.7; }
-    .analysis-content h4 { color: #58a6ff; margin: 15px 0 8px 0; font-size: 0.95rem; }
-    .analysis-content h4:first-child { margin-top: 0; }
-    .analysis-content p { margin: 8px 0; }
-    .analysis-content ul { margin: 8px 0; padding-left: 20px; }
-    .analysis-content li { margin: 4px 0; }
-    .analysis-content .event-tag { display: inline-block; background: #9e6a03; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; margin-right: 5px; }
-    .analysis-content .bullish { color: #3fb950; }
-    .analysis-content .bearish { color: #f85149; }
-    .analysis-content .neutral { color: #8b949e; }
+    .analysis-content h4 { color: #58a6ff; margin: 20px 0 10px 0; font-size: 0.95rem; font-weight: 600; border-bottom: 1px solid #30363d; padding-bottom: 5px; }
+    .analysis-content h4:first-child { margin-top: 5px; }
+    .analysis-content p { margin: 8px 0; color: #c9d1d9; }
+    .analysis-content ul { margin: 10px 0; padding-left: 0; list-style: none; }
+    .analysis-content li { margin: 8px 0; padding-left: 20px; position: relative; color: #c9d1d9; }
+    .analysis-content li:before { content: "•"; position: absolute; left: 5px; color: #58a6ff; }
+    .analysis-content strong { color: #f0f6fc; }
     
     /* Modals */
     .modal-overlay {
@@ -1829,26 +1827,48 @@
     let latestAnalysis = JSON.parse(localStorage.getItem('pinky-latest-analysis') || 'null');
     
     function formatAnalysisText(raw) {
-      // Convert markdown-like format to HTML
-      let html = raw
-        // Headers: **Header**: or **Header**
-        .replace(/\*\*([^*]+)\*\*:/g, '</p><h4>$1</h4><p>')
-        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-        // Line breaks for numbered items
-        .replace(/(\d+)\.\s+/g, '</p><p><strong>$1.</strong> ')
-        // Bullet points
-        .replace(/•\s+/g, '</p><li>')
-        // Clean up
-        .replace(/<\/p><p><\/p>/g, '</p>')
-        .replace(/^<\/p>/, '')
-        .replace(/<p>$/, '');
+      // Split by section headers
+      const sections = raw.split(/\*\*([📊📰📅📈🧠🎯][^*]+)\*\*/g);
       
-      // Wrap in paragraph if not already
-      if (!html.startsWith('<')) {
-        html = '<p>' + html + '</p>';
+      let html = '';
+      for (let i = 0; i < sections.length; i++) {
+        const part = sections[i].trim();
+        if (!part) continue;
+        
+        // Check if this is a header (starts with emoji)
+        if (/^[📊📰📅📈🧠🎯]/.test(part)) {
+          html += `<h4>${part}</h4>`;
+        } else {
+          // Content section - format bullet points
+          let content = part
+            // Convert - or • bullet points to list items
+            .replace(/^[-•]\s*/gm, '<li>')
+            .replace(/\n[-•]\s*/g, '</li><li>')
+            // Bold text
+            .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+            // Line breaks
+            .replace(/\n\n/g, '</p><p>')
+            .replace(/\n/g, ' ');
+          
+          // Wrap bullets in ul
+          if (content.includes('<li>')) {
+            content = '<ul>' + content + '</li></ul>';
+            content = content.replace(/<\/ul>\s*<ul>/g, '');
+          } else if (content.trim()) {
+            content = '<p>' + content + '</p>';
+          }
+          
+          html += content;
+        }
       }
       
-      return html;
+      // Clean up empty tags
+      html = html
+        .replace(/<p>\s*<\/p>/g, '')
+        .replace(/<ul>\s*<\/ul>/g, '')
+        .replace(/<li>\s*<\/li>/g, '');
+      
+      return html || '<p>' + raw + '</p>';
     }
     
     function renderLatestAnalysis() {
