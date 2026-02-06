@@ -380,6 +380,7 @@
         <button class="nav-tab" data-tab="theses">Frameworks</button>
         <button class="nav-tab" data-tab="transactions">Log</button>
         <button class="nav-tab" data-tab="watchlist">Watchlist</button>
+        <button class="nav-tab" data-tab="earnings">Earnings</button>
         <button class="nav-tab" data-tab="notes">Notes</button>
       </div>
     </nav>
@@ -610,6 +611,38 @@
             <button class="btn btn-primary" onclick="openModal('watchlistModal')">+ Add</button>
           </div>
           <div id="watchlistItems"></div>
+        </div>
+      </div>
+      
+      <!-- Earnings Tab -->
+      <div class="tab-content" id="earnings">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">📅 Upcoming Earnings</span>
+            <button class="btn btn-primary" onclick="fetchEarningsDates()" id="refreshEarningsBtn">🔄 Refresh Dates</button>
+          </div>
+          <p style="color:#8b949e; margin-bottom: 15px; font-size: 0.85rem;">Earnings dates for your holdings. Dates are estimates and may change.</p>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Symbol</th>
+                  <th>Company</th>
+                  <th>Days Away</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="earningsTable"></tbody>
+            </table>
+          </div>
+        </div>
+        
+        <div class="card" style="margin-top: 20px;">
+          <div class="card-header">
+            <span class="card-title">📊 Earnings This Week</span>
+          </div>
+          <div id="earningsThisWeek"></div>
         </div>
       </div>
       
@@ -1524,6 +1557,9 @@
         </div>
       `).join('') || '<p style="color:#8b949e;">No notes yet.</p>';
       
+      // Earnings
+      renderEarnings();
+      
       // Update chart
       if (valueChart) {
         const currentYear = new Date().getFullYear();
@@ -2372,6 +2408,134 @@
     
     // Set default date for transactions
     document.getElementById('txDate').value = new Date().toISOString().split('T')[0];
+    
+    // ==================== EARNINGS CALENDAR ====================
+    let earningsData = JSON.parse(localStorage.getItem('earnings-data') || '{}');
+    
+    function renderEarnings() {
+      const tableBody = document.getElementById('earningsTable');
+      const thisWeekDiv = document.getElementById('earningsThisWeek');
+      
+      if (!tableBody) return;
+      
+      const stockHoldings = data.holdings.filter(h => h.type === 'stock');
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      // Build earnings list with dates
+      const earningsList = stockHoldings.map(h => {
+        const earningsDate = earningsData[h.symbol]?.date;
+        const dateObj = earningsDate ? new Date(earningsDate) : null;
+        const daysAway = dateObj ? Math.ceil((dateObj - today) / (1000 * 60 * 60 * 24)) : null;
+        
+        return {
+          symbol: h.symbol,
+          name: h.name,
+          date: earningsDate,
+          dateObj,
+          daysAway,
+          time: earningsData[h.symbol]?.time || 'TBD'
+        };
+      });
+      
+      // Sort by date (soonest first, unknown at end)
+      earningsList.sort((a, b) => {
+        if (!a.dateObj && !b.dateObj) return 0;
+        if (!a.dateObj) return 1;
+        if (!b.dateObj) return -1;
+        return a.dateObj - b.dateObj;
+      });
+      
+      // Render table
+      tableBody.innerHTML = earningsList.map(e => {
+        let statusClass = '';
+        let statusText = '';
+        
+        if (e.daysAway === null) {
+          statusText = '❓ Unknown';
+          statusClass = '';
+        } else if (e.daysAway < 0) {
+          statusText = '✅ Reported';
+          statusClass = 'positive';
+        } else if (e.daysAway === 0) {
+          statusText = '🔴 TODAY';
+          statusClass = 'negative';
+        } else if (e.daysAway <= 7) {
+          statusText = '⚠️ This Week';
+          statusClass = 'negative';
+        } else if (e.daysAway <= 14) {
+          statusText = '📅 Soon';
+          statusClass = '';
+        } else {
+          statusText = '📆 Upcoming';
+          statusClass = '';
+        }
+        
+        return `
+          <tr>
+            <td>${e.date ? formatDate(e.date) : 'Unknown'}</td>
+            <td class="ticker">${e.symbol}</td>
+            <td>${e.name}</td>
+            <td>${e.daysAway !== null ? (e.daysAway < 0 ? 'Passed' : e.daysAway + ' days') : '-'}</td>
+            <td class="${statusClass}">${statusText}</td>
+          </tr>
+        `;
+      }).join('') || '<tr><td colspan="5" style="text-align:center;color:#8b949e;">No stock holdings</td></tr>';
+      
+      // This week section
+      const thisWeek = earningsList.filter(e => e.daysAway !== null && e.daysAway >= 0 && e.daysAway <= 7);
+      if (thisWeek.length > 0) {
+        thisWeekDiv.innerHTML = thisWeek.map(e => `
+          <div class="watchlist-item" style="border-left: 3px solid #f85149;">
+            <div>
+              <div class="watchlist-ticker">${e.symbol} - ${e.name}</div>
+              <div class="watchlist-note">${formatDate(e.date)} (${e.daysAway === 0 ? 'TODAY' : e.daysAway + ' days away'})</div>
+            </div>
+            <span class="negative" style="font-weight: 600;">⚠️ Earnings</span>
+          </div>
+        `).join('');
+      } else {
+        thisWeekDiv.innerHTML = '<p style="color:#8b949e;">No earnings this week for your holdings.</p>';
+      }
+    }
+    
+    async function fetchEarningsDates() {
+      const btn = document.getElementById('refreshEarningsBtn');
+      btn.disabled = true;
+      btn.innerHTML = '⏳ Fetching...';
+      
+      const stockHoldings = data.holdings.filter(h => h.type === 'stock');
+      
+      // Use Yahoo Finance earnings calendar via API
+      for (const h of stockHoldings) {
+        try {
+          const url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${h.symbol}?modules=calendarEvents`;
+          const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+          
+          const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(5000) });
+          if (res.ok) {
+            const json = await res.json();
+            const earnings = json?.quoteSummary?.result?.[0]?.calendarEvents?.earnings;
+            if (earnings?.earningsDate?.[0]?.raw) {
+              const timestamp = earnings.earningsDate[0].raw * 1000;
+              earningsData[h.symbol] = {
+                date: new Date(timestamp).toISOString().split('T')[0],
+                time: earnings.earningsTime || 'TBD'
+              };
+              console.log(`✅ ${h.symbol}: ${earningsData[h.symbol].date}`);
+            }
+          }
+        } catch (e) {
+          console.log(`⚠️ Could not fetch earnings for ${h.symbol}`);
+        }
+      }
+      
+      localStorage.setItem('earnings-data', JSON.stringify(earningsData));
+      renderEarnings();
+      
+      btn.disabled = false;
+      btn.innerHTML = '🔄 Refresh Dates';
+    }
     
     // ==================== INIT ====================
     // Check session AFTER all code is defined (at the very end)
