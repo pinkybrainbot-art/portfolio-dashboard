@@ -1194,6 +1194,9 @@
         // Load investment framework
         loadFramework();
         
+        // Check for missing descriptions
+        fetchMissingDescriptions();
+        
         // Load high conviction plays
         loadConviction();
         
@@ -1495,8 +1498,8 @@
       renderLatestAnalysis();
       
       // Holdings tables - split by type
-      // Company/asset descriptions
-      const descriptions = {
+      // Company/asset descriptions (merged with any stored)
+      const defaultDescriptions = {
         'TSLA': 'Electric vehicles, energy storage, and AI-powered autonomous driving',
         'NVDA': 'AI chips and GPU computing leader powering data centers worldwide',
         'MSTR': 'Business intelligence software company and largest corporate Bitcoin holder',
@@ -1509,6 +1512,8 @@
         'SOL': 'High-speed blockchain for DeFi, NFTs, and decentralized apps',
         'ETH': 'Programmable blockchain powering smart contracts and DeFi',
       };
+      const storedDescriptions = JSON.parse(localStorage.getItem('holding-descriptions') || '{}');
+      const descriptions = { ...defaultDescriptions, ...storedDescriptions };
       
       const stocks = data.holdings.filter(h => h.type === 'stock').sort((a, b) => (b.shares * b.price) - (a.shares * a.price));
       const crypto = data.holdings.filter(h => h.type === 'crypto').sort((a, b) => (b.shares * b.price) - (a.shares * a.price));
@@ -2656,6 +2661,46 @@
       
       btn.disabled = false;
       btn.innerHTML = '🔍 Analyze Watchlist';
+    }
+    
+    // ==================== AUTO-FETCH MISSING DESCRIPTIONS ====================
+    async function fetchMissingDescriptions() {
+      const defaultDescriptions = {
+        'TSLA': 1, 'NVDA': 1, 'MSTR': 1, 'HIMS': 1, 'ANET': 1, 'SNOW': 1, 
+        'FTNT': 1, 'MRVL': 1, 'BTC': 1, 'SOL': 1, 'ETH': 1
+      };
+      const storedDescriptions = JSON.parse(localStorage.getItem('holding-descriptions') || '{}');
+      
+      // Find holdings without descriptions
+      const missing = data.holdings.filter(h => 
+        !defaultDescriptions[h.symbol] && !storedDescriptions[h.symbol]
+      );
+      
+      if (missing.length === 0) return;
+      
+      console.log('📝 Fetching descriptions for:', missing.map(h => h.symbol).join(', '));
+      
+      try {
+        const response = await fetch('/api/describe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            symbols: missing.map(h => ({ symbol: h.symbol, name: h.name, type: h.type }))
+          })
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          if (result.descriptions) {
+            const updated = { ...storedDescriptions, ...result.descriptions };
+            localStorage.setItem('holding-descriptions', JSON.stringify(updated));
+            console.log('✅ Descriptions added:', Object.keys(result.descriptions).join(', '));
+            render(); // Re-render to show new descriptions
+          }
+        }
+      } catch (e) {
+        console.log('Could not fetch descriptions:', e);
+      }
     }
     
     function editEarningsDate(symbol) {
