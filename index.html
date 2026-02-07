@@ -1545,19 +1545,24 @@
       `).join('') || '<p style="color:#8b949e;">No transactions logged.</p>';
       
       // Watchlist
-      document.getElementById('watchlistItems').innerHTML = data.watchlist.map((w, idx) => `
-        <div class="watchlist-item">
-          <div>
-            <div class="watchlist-ticker">${w.symbol}</div>
-            <div class="watchlist-note">${w.notes || ''}</div>
+      document.getElementById('watchlistItems').innerHTML = [...data.watchlist]
+        .sort((a, b) => a.symbol.localeCompare(b.symbol))
+        .map((w) => {
+          const originalIdx = data.watchlist.findIndex(item => item.symbol === w.symbol);
+          return `
+          <div class="watchlist-item">
+            <div>
+              <div class="watchlist-ticker">${w.symbol}</div>
+              <div class="watchlist-note">${w.notes || ''}</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              ${w.target ? `<span style="color:#8b949e;">Target: $${w.target}</span>` : ''}
+              <button class="btn btn-secondary" onclick="editWatchlistItem(${originalIdx})" title="Edit">✏️</button>
+              <button class="btn btn-secondary" onclick="deleteWatchlistItem(${originalIdx})" title="Delete">×</button>
+            </div>
           </div>
-          <div style="display: flex; align-items: center; gap: 10px;">
-            ${w.target ? `<span style="color:#8b949e;">Target: $${w.target}</span>` : ''}
-            <button class="btn btn-secondary" onclick="editWatchlistItem(${idx})" title="Edit">✏️</button>
-            <button class="btn btn-secondary" onclick="deleteWatchlistItem(${idx})" title="Delete">×</button>
-          </div>
-        </div>
-      `).join('') || '<p style="color:#8b949e;">Watchlist empty.</p>';
+        `;
+        }).join('') || '<p style="color:#8b949e;">Watchlist empty.</p>';
       
       // Watchlist Analysis
       renderWatchlistAnalysis();
