@@ -33,7 +33,43 @@ export default async function handler(req, res) {
     let prompt;
     let maxTokens = 1200;
     
-    if (type === 'conviction') {
+    if (type === 'watchlist') {
+      const { watchlist } = req.body;
+      maxTokens = 1500;
+      
+      const watchlistSummary = (watchlist || [])
+        .map(w => `${w.symbol}: ${w.notes || 'No notes'} (Target: ${w.target ? '$' + w.target : 'Not set'})`)
+        .join('\n');
+      
+      prompt = `You are an expert portfolio analyst. Analyze whether any stocks on the watchlist should be purchased TODAY to improve this portfolio.
+
+CURRENT PORTFOLIO ($${totalValue?.toLocaleString()}):
+${holdingsSummary}
+
+WATCHLIST:
+${watchlistSummary}
+
+Current market context (Feb 2026): Trump tariffs, tech volatility, crypto pullback.
+
+Analyze each watchlist stock and answer:
+
+**🎯 Buy Recommendations**
+
+For each watchlist stock, provide:
+- **[SYMBOL]**: BUY TODAY / WAIT / PASS
+- Reasoning (1-2 sentences)
+- If BUY: suggested position size (% of portfolio or $ amount)
+- If WAIT: what trigger/price to watch for
+
+**⚖️ Portfolio Fit Analysis**
+- Which watchlist stock would best complement the current holdings?
+- Would any add unwanted concentration or correlation?
+
+**🏆 Top Pick**
+If you had to buy ONE stock from this watchlist today, which would it be and why?
+
+Be decisive. Give clear buy/wait/pass recommendations, not wishy-washy analysis.`;
+    } else if (type === 'conviction') {
       maxTokens = 2500;
       prompt = `You are an elite stock picker with a track record of identifying multi-bagger opportunities.
 

@@ -612,6 +612,25 @@
           </div>
           <div id="watchlistItems"></div>
         </div>
+        
+        <!-- AI Watchlist Analysis -->
+        <div class="card" style="margin-top: 20px;">
+          <div class="card-header">
+            <span class="card-title">🎯 Should You Buy Today?</span>
+            <button class="btn btn-ask" onclick="analyzeWatchlist()" id="watchlistAnalysisBtn">
+              🔍 Analyze Watchlist
+            </button>
+          </div>
+          <div id="watchlistAnalysis">
+            <div class="note-card" id="watchlistAnalysisCard" style="display: none;">
+              <div class="note-meta">
+                <span id="watchlistAnalysisTimestamp"></span>
+              </div>
+              <div class="analysis-content" id="watchlistAnalysisText"></div>
+            </div>
+            <p id="noWatchlistAnalysisMsg" style="color:#8b949e;">Click "Analyze Watchlist" to see if any watchlist stocks warrant investment today based on your current portfolio.</p>
+          </div>
+        </div>
       </div>
       
       <!-- Earnings Tab -->
@@ -1539,6 +1558,9 @@
           </div>
         </div>
       `).join('') || '<p style="color:#8b949e;">Watchlist empty.</p>';
+      
+      // Watchlist Analysis
+      renderWatchlistAnalysis();
       
       // Notes
       document.getElementById('notesList').innerHTML = data.notes.map((n, idx) => `
@@ -2532,6 +2554,80 @@
       
       btn.disabled = false;
       btn.innerHTML = '🔄 Refresh Dates';
+    }
+    
+    // ==================== WATCHLIST ANALYSIS ====================
+    let storedWatchlistAnalysis = JSON.parse(localStorage.getItem('pinky-watchlist-analysis') || 'null');
+    
+    function renderWatchlistAnalysis() {
+      const card = document.getElementById('watchlistAnalysisCard');
+      const text = document.getElementById('watchlistAnalysisText');
+      const timestamp = document.getElementById('watchlistAnalysisTimestamp');
+      const noMsg = document.getElementById('noWatchlistAnalysisMsg');
+      
+      if (storedWatchlistAnalysis && storedWatchlistAnalysis.text) {
+        card.style.display = 'block';
+        noMsg.style.display = 'none';
+        text.innerHTML = formatAnalysisText(storedWatchlistAnalysis.text);
+        timestamp.textContent = formatDate(storedWatchlistAnalysis.timestamp);
+      } else {
+        card.style.display = 'none';
+        noMsg.style.display = 'block';
+      }
+    }
+    
+    async function analyzeWatchlist() {
+      const btn = document.getElementById('watchlistAnalysisBtn');
+      const card = document.getElementById('watchlistAnalysisCard');
+      const text = document.getElementById('watchlistAnalysisText');
+      const timestamp = document.getElementById('watchlistAnalysisTimestamp');
+      const noMsg = document.getElementById('noWatchlistAnalysisMsg');
+      
+      if (data.watchlist.length === 0) {
+        alert('Add some stocks to your watchlist first!');
+        return;
+      }
+      
+      btn.disabled = true;
+      btn.innerHTML = '⏳ Analyzing...';
+      card.style.display = 'block';
+      noMsg.style.display = 'none';
+      text.textContent = 'Analyzing watchlist against your current portfolio...';
+      timestamp.textContent = 'Loading...';
+      
+      try {
+        const { stocksValue, cryptoValue, totalValue } = calculateTotals();
+        
+        const response = await fetch('/api/recommend', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            holdings: data.holdings,
+            watchlist: data.watchlist,
+            totalValue,
+            stocksValue,
+            cryptoValue,
+            type: 'watchlist'
+          })
+        });
+        
+        const result = await response.json();
+        
+        if (result.error) {
+          text.textContent = `❌ Error: ${result.error}`;
+        } else {
+          storedWatchlistAnalysis = { text: result.analysis, timestamp: result.timestamp || new Date().toISOString() };
+          localStorage.setItem('pinky-watchlist-analysis', JSON.stringify(storedWatchlistAnalysis));
+          renderWatchlistAnalysis();
+        }
+        
+      } catch (error) {
+        console.error('Watchlist analysis error:', error);
+        text.textContent = `❌ Error: ${error.message}. Try again later.`;
+      }
+      
+      btn.disabled = false;
+      btn.innerHTML = '🔍 Analyze Watchlist';
     }
     
     function editEarningsDate(symbol) {
